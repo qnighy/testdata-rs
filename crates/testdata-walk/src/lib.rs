@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf, StripPrefixError};
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
-pub fn walk(spec: &GlobSpec) -> Result<Vec<String>, Error> {
-    walk_dir(spec, Path::new("."))
+pub fn glob(spec: &GlobSpec) -> Result<Vec<String>, Error> {
+    glob_dir(spec, Path::new("."))
 }
 
-pub fn walk_dir(spec: &GlobSpec, root: &Path) -> Result<Vec<String>, Error> {
+pub fn glob_dir(spec: &GlobSpec, root: &Path) -> Result<Vec<String>, Error> {
     let mut stems = HashSet::new();
     let args = spec
         .args

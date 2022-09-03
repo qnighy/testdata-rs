@@ -1,10 +1,10 @@
 use std::path::Path;
 
-use testdata_walk::{walk_dir, ArgSpec, GlobSpec};
+use testdata_walk::{glob_dir, ArgSpec, GlobSpec};
 
 #[test]
 fn test_walk_dir() {
-    let stems = walk_dir(
+    let stems = glob_dir(
         &GlobSpec::new()
             .arg(ArgSpec::new("data/**/*-in.txt"))
             .arg(ArgSpec::new("data/**/*-out.txt")),
@@ -26,7 +26,7 @@ fn test_walk_dir() {
 
 #[test]
 fn test_walk_dir_non_nested() {
-    let stems = walk_dir(
+    let stems = glob_dir(
         &GlobSpec::new()
             .arg(ArgSpec::new("data/*-in.txt"))
             .arg(ArgSpec::new("data/*-out.txt")),
@@ -41,7 +41,7 @@ fn test_walk_dir_non_nested() {
 
 #[test]
 fn test_walk_dir_invalid_glob1() {
-    let e = walk_dir(
+    let e = glob_dir(
         &GlobSpec::new().arg(ArgSpec::new("data/*-*.txt")),
         Path::new("tests/fixtures/project1"),
     )
@@ -51,7 +51,7 @@ fn test_walk_dir_invalid_glob1() {
 
 #[test]
 fn test_walk_dir_invalid_glob2() {
-    let e = walk_dir(
+    let e = glob_dir(
         &GlobSpec::new().arg(ArgSpec::new("data/in.txt")),
         Path::new("tests/fixtures/project1"),
     )
@@ -61,7 +61,7 @@ fn test_walk_dir_invalid_glob2() {
 
 #[test]
 fn test_walk_dir_mixed_glob() {
-    let e = walk_dir(
+    let e = glob_dir(
         &GlobSpec::new()
             .arg(ArgSpec::new("data/**/*-in.txt"))
             .arg(ArgSpec::new("data/*-out.txt")),
@@ -73,7 +73,7 @@ fn test_walk_dir_mixed_glob() {
 
 #[test]
 fn test_walk_dir_no_args() {
-    let stems = walk_dir(&GlobSpec::new(), Path::new("tests/fixtures/project1")).unwrap();
+    let stems = glob_dir(&GlobSpec::new(), Path::new("tests/fixtures/project1")).unwrap();
     assert_eq!(stems, vec![] as Vec<String>);
 }
 
