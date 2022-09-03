@@ -4,53 +4,6 @@ use std::path::{Path, PathBuf, StripPrefixError};
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
-pub fn glob(spec: &GlobSpec) -> Result<Vec<String>, Error> {
-    glob_dir(spec, Path::new("."))
-}
-
-pub fn glob_dir(spec: &GlobSpec, root: &Path) -> Result<Vec<String>, Error> {
-    let mut stems = HashSet::new();
-    let args = spec
-        .args
-        .iter()
-        .map(|arg| arg.parse())
-        .collect::<Result<Vec<_>, _>>()?;
-    let glob_type = if !args.is_empty() {
-        let glob_type = args[0].glob_type;
-        if !args.iter().all(|arg| arg.glob_type == glob_type) {
-            return Err(Error::MixedGlob);
-        }
-        glob_type
-    } else {
-        GlobType::Recursive
-    };
-    for entry in WalkDir::new(root).sort_by_file_name() {
-        let entry = entry?;
-        let file_name = entry
-            .path()
-            .strip_prefix(root)
-            .map_err(|e| Error::StripPrefix(e, root.to_owned(), entry.path().to_owned()))?;
-        let file_name = file_name
-            .to_str()
-            .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
-        for arg in &args {
-            if file_name.starts_with(&arg.prefix) && file_name.ends_with(&arg.suffix) {
-                let stem = &file_name[arg.prefix.len()..file_name.len() - arg.suffix.len()];
-                if glob_type == GlobType::Recursive || !stem.contains('/') {
-                    stems.insert(stem.to_owned());
-                }
-            }
-        }
-    }
-    let sorted_stems = {
-        let mut sorted_stems = stems.into_iter().collect::<Vec<_>>();
-        sorted_stems.sort();
-        sorted_stems
-    };
-
-    Ok(sorted_stems)
-}
-
 #[derive(Debug, StdError)]
 pub enum Error {
     #[error("Error during walk: {0}")]
@@ -79,6 +32,53 @@ impl GlobSpec {
     pub fn arg(mut self, arg: ArgSpec) -> Self {
         self.args.push(arg);
         self
+    }
+
+    pub fn glob(&self) -> Result<Vec<String>, Error> {
+        self.glob_dir(Path::new("."))
+    }
+
+    pub fn glob_dir(&self, root: &Path) -> Result<Vec<String>, Error> {
+        let mut stems = HashSet::new();
+        let args = self
+            .args
+            .iter()
+            .map(|arg| arg.parse())
+            .collect::<Result<Vec<_>, _>>()?;
+        let glob_type = if !args.is_empty() {
+            let glob_type = args[0].glob_type;
+            if !args.iter().all(|arg| arg.glob_type == glob_type) {
+                return Err(Error::MixedGlob);
+            }
+            glob_type
+        } else {
+            GlobType::Recursive
+        };
+        for entry in WalkDir::new(root).sort_by_file_name() {
+            let entry = entry?;
+            let file_name = entry
+                .path()
+                .strip_prefix(root)
+                .map_err(|e| Error::StripPrefix(e, root.to_owned(), entry.path().to_owned()))?;
+            let file_name = file_name
+                .to_str()
+                .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
+            for arg in &args {
+                if file_name.starts_with(&arg.prefix) && file_name.ends_with(&arg.suffix) {
+                    let stem = &file_name[arg.prefix.len()..file_name.len() - arg.suffix.len()];
+                    if glob_type == GlobType::Recursive || !stem.contains('/') {
+                        stems.insert(stem.to_owned());
+                    }
+                }
+            }
+        }
+        let sorted_stems = {
+            let mut sorted_stems = stems.into_iter().collect::<Vec<_>>();
+            sorted_stems.sort();
+            sorted_stems
+        };
+
+        Ok(sorted_stems)
     }
 }
 

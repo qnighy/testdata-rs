@@ -1,16 +1,13 @@
 use std::path::Path;
 
-use testdata_walk::{glob_dir, ArgSpec, GlobSpec};
+use testdata_walk::{ArgSpec, GlobSpec};
 
 #[test]
 fn test_walk_dir() {
-    let stems = glob_dir(
-        &GlobSpec::new()
-            .arg(ArgSpec::new("data/**/*-in.txt"))
-            .arg(ArgSpec::new("data/**/*-out.txt")),
-        Path::new("tests/fixtures/project1"),
-    )
-    .unwrap();
+    let spec = GlobSpec::new()
+        .arg(ArgSpec::new("data/**/*-in.txt"))
+        .arg(ArgSpec::new("data/**/*-out.txt"));
+    let stems = spec.glob_dir(Path::new("tests/fixtures/project1")).unwrap();
     assert_eq!(
         stems,
         vec![
@@ -26,13 +23,10 @@ fn test_walk_dir() {
 
 #[test]
 fn test_walk_dir_non_nested() {
-    let stems = glob_dir(
-        &GlobSpec::new()
-            .arg(ArgSpec::new("data/*-in.txt"))
-            .arg(ArgSpec::new("data/*-out.txt")),
-        Path::new("tests/fixtures/project1"),
-    )
-    .unwrap();
+    let spec = GlobSpec::new()
+        .arg(ArgSpec::new("data/*-in.txt"))
+        .arg(ArgSpec::new("data/*-out.txt"));
+    let stems = spec.glob_dir(Path::new("tests/fixtures/project1")).unwrap();
     assert_eq!(
         stems,
         vec!["bar".to_owned(), "baz".to_owned(), "foo".to_owned(),]
@@ -41,39 +35,37 @@ fn test_walk_dir_non_nested() {
 
 #[test]
 fn test_walk_dir_invalid_glob1() {
-    let e = glob_dir(
-        &GlobSpec::new().arg(ArgSpec::new("data/*-*.txt")),
-        Path::new("tests/fixtures/project1"),
-    )
-    .unwrap_err();
+    let spec = GlobSpec::new().arg(ArgSpec::new("data/*-*.txt"));
+    let e = spec
+        .glob_dir(Path::new("tests/fixtures/project1"))
+        .unwrap_err();
     assert_eq!(e.to_string(), "Invalid glob: \"data/*-*.txt\"");
 }
 
 #[test]
 fn test_walk_dir_invalid_glob2() {
-    let e = glob_dir(
-        &GlobSpec::new().arg(ArgSpec::new("data/in.txt")),
-        Path::new("tests/fixtures/project1"),
-    )
-    .unwrap_err();
+    let spec = GlobSpec::new().arg(ArgSpec::new("data/in.txt"));
+    let e = spec
+        .glob_dir(Path::new("tests/fixtures/project1"))
+        .unwrap_err();
     assert_eq!(e.to_string(), "Invalid glob: \"data/in.txt\"");
 }
 
 #[test]
 fn test_walk_dir_mixed_glob() {
-    let e = glob_dir(
-        &GlobSpec::new()
-            .arg(ArgSpec::new("data/**/*-in.txt"))
-            .arg(ArgSpec::new("data/*-out.txt")),
-        Path::new("tests/fixtures/project1"),
-    )
-    .unwrap_err();
+    let spec = GlobSpec::new()
+        .arg(ArgSpec::new("data/**/*-in.txt"))
+        .arg(ArgSpec::new("data/*-out.txt"));
+    let e = spec
+        .glob_dir(Path::new("tests/fixtures/project1"))
+        .unwrap_err();
     assert_eq!(e.to_string(), "Different glob types are mixed");
 }
 
 #[test]
 fn test_walk_dir_no_args() {
-    let stems = glob_dir(&GlobSpec::new(), Path::new("tests/fixtures/project1")).unwrap();
+    let spec = GlobSpec::new();
+    let stems = spec.glob_dir(Path::new("tests/fixtures/project1")).unwrap();
     assert_eq!(stems, vec![] as Vec<String>);
 }
 
