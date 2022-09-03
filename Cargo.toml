@@ -9,5 +9,5 @@ edition = "2021"
 
 [workspace]
 members = [
-    "crates/testdata-walk",
+    "crates/testdata-glob",
 ]
