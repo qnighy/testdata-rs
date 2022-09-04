@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use testdata_walk::{ArgSpec, GlobSpec};
+use testdata_walk::{ArgSpec, Error, GlobSpec};
 
 #[test]
 fn test_walk_dir() {
@@ -67,6 +67,17 @@ fn test_walk_dir_no_args() {
     let spec = GlobSpec::new();
     let stems = spec.glob_dir(Path::new("tests/fixtures/project1")).unwrap();
     assert_eq!(stems, vec![] as Vec<String>);
+}
+
+#[test]
+fn test_error_source() {
+    use std::error::Error as StdError;
+    let _ = Error::InvalidGlob("".into()).source();
+}
+
+#[test]
+fn test_error_debug() {
+    let _ = format!("{:?}", Error::InvalidGlob("".into()));
 }
 
 #[test]

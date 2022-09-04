@@ -45,14 +45,11 @@ impl GlobSpec {
             .iter()
             .map(|arg| arg.parse())
             .collect::<Result<Vec<_>, _>>()?;
-        let glob_type = if !args.is_empty() {
+        if !args.is_empty() {
             let glob_type = args[0].glob_type;
             if !args.iter().all(|arg| arg.glob_type == glob_type) {
                 return Err(Error::MixedGlob);
             }
-            glob_type
-        } else {
-            GlobType::Recursive
         };
         for entry in WalkDir::new(root).sort_by_file_name() {
             let entry = entry?;
@@ -64,11 +61,8 @@ impl GlobSpec {
                 .to_str()
                 .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
             for arg in &args {
-                if file_name.starts_with(&arg.prefix) && file_name.ends_with(&arg.suffix) {
-                    let stem = &file_name[arg.prefix.len()..file_name.len() - arg.suffix.len()];
-                    if glob_type == GlobType::Recursive || !stem.contains('/') {
-                        stems.insert(stem.to_owned());
-                    }
+                if let Some(stem) = arg.extract(file_name) {
+                    stems.insert(stem.to_owned());
                 }
             }
         }
@@ -79,6 +73,25 @@ impl GlobSpec {
         };
 
         Ok(sorted_stems)
+    }
+
+    pub fn expand(&self, root: &Path, stem: &str) -> Option<Vec<PathBuf>> {
+        let mut eligible = false;
+        let mut paths = Vec::new();
+        for arg in &self.args {
+            // TODO: memoize parsing
+            let path = arg.parse().unwrap().subst(stem)?;
+            let path = root.join(path);
+            if path.exists() {
+                eligible = true
+            }
+            paths.push(path);
+        }
+        if eligible {
+            Some(paths)
+        } else {
+            None
+        }
     }
 }
 
@@ -124,10 +137,47 @@ struct ParsedArgSpec {
     suffix: String,
 }
 
+impl ParsedArgSpec {
+    fn extract<'a>(&self, file_name: &'a str) -> Option<&'a str> {
+        if file_name.starts_with(&self.prefix) && file_name.ends_with(&self.suffix) {
+            let stem = &file_name[self.prefix.len()..file_name.len() - self.suffix.len()];
+            if self.glob_type == GlobType::Recursive || !stem.contains('/') {
+                return Some(stem);
+            }
+        }
+        None
+    }
+
+    fn subst(&self, stem: &str) -> Option<String> {
+        if self.glob_type == GlobType::Recursive || !stem.contains('/') {
+            Some(format!("{}{}{}", self.prefix, stem, self.suffix))
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GlobType {
     /// `**/*`
     Recursive,
     /// `*`
     Single,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_glob_type_clone() {
+        let _ = GlobType::Recursive.clone();
+        let _ = GlobType::Single.clone();
+    }
+
+    #[test]
+    fn test_glob_type_debug() {
+        let _ = format!("{:?}", GlobType::Recursive);
+        let _ = format!("{:?}", GlobType::Single);
+    }
 }
