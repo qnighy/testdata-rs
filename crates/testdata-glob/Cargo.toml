@@ -1,5 +1,5 @@
 [package]
-name = "testdata-walk"
+name = "testdata-glob"
 version = "0.1.0"
 edition = "2021"
 

@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use testdata_walk::{ArgSpec, GlobSpec};
+use testdata_glob::{ArgSpec, GlobSpec};
 
 #[test]
 fn test_expand() {
