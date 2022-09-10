@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use testdata_glob::{ArgSpec, Error, GlobSpec};
+use testdata_rt::{ArgSpec, Error, GlobSpec};
 
 #[test]
 fn test_walk_dir() {

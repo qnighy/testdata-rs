@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::quote;
 use syn::{punctuated::Punctuated, FnArg, ItemFn, Token};
-use testdata_glob::GlobSpec;
+use testdata_rt::GlobSpec;
 
 use crate::tree::{StemFn, StemTree};
 
@@ -214,7 +214,7 @@ fn get_rt() -> TokenStream {
 mod tests {
     use big_s::S;
     use syn::parse_quote;
-    use testdata_glob::ArgSpec;
+    use testdata_rt::ArgSpec;
 
     use crate::assert_ts_eq;
 

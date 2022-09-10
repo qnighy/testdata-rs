@@ -8,7 +8,7 @@ mod tree;
 use proc_macro2::TokenStream;
 use syn::spanned::Spanned;
 use syn::{parse2, Item};
-use testdata_glob::GlobSpec;
+use testdata_rt::GlobSpec;
 
 use crate::attrs::{ArgAttrs, MacroArgs};
 use crate::codegen::generate;
@@ -46,7 +46,7 @@ fn testdata2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream
 
     let mut spec = GlobSpec::new();
     for attrs in &args_attrs {
-        spec.args.push(testdata_glob::ArgSpec::new(&attrs.glob));
+        spec.args.push(testdata_rt::ArgSpec::new(&attrs.glob));
     }
 
     let stems = spec.glob().map_err(|e| syn::Error::new(span, e))?;
