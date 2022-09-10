@@ -21,12 +21,21 @@ pub enum Error {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct GlobSpec {
+    pub root: PathBuf,
     pub args: Vec<ArgSpec>,
 }
 
 impl GlobSpec {
     pub fn new() -> Self {
-        Self { args: Vec::new() }
+        Self {
+            root: PathBuf::from("."),
+            args: Vec::new(),
+        }
+    }
+
+    pub fn root(mut self, root: &Path) -> Self {
+        self.root = root.to_owned();
+        self
     }
 
     pub fn arg(mut self, arg: ArgSpec) -> Self {
@@ -35,10 +44,6 @@ impl GlobSpec {
     }
 
     pub fn glob(&self) -> Result<Vec<String>, Error> {
-        self.glob_dir(Path::new("."))
-    }
-
-    pub fn glob_dir(&self, root: &Path) -> Result<Vec<String>, Error> {
         let mut stems = HashSet::new();
         let args = self
             .args
@@ -51,12 +56,12 @@ impl GlobSpec {
                 return Err(Error::MixedGlob);
             }
         };
-        for entry in WalkDir::new(root).sort_by_file_name() {
+        for entry in WalkDir::new(&self.root).sort_by_file_name() {
             let entry = entry?;
             let file_name = entry
                 .path()
-                .strip_prefix(root)
-                .map_err(|e| Error::StripPrefix(e, root.to_owned(), entry.path().to_owned()))?;
+                .strip_prefix(&self.root)
+                .map_err(|e| Error::StripPrefix(e, self.root.clone(), entry.path().to_owned()))?;
             let file_name = file_name
                 .to_str()
                 .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
@@ -75,12 +80,8 @@ impl GlobSpec {
         Ok(sorted_stems)
     }
 
-    pub fn glob_diff(
-        &self,
-        root: &Path,
-        known_stems: &[String],
-    ) -> Result<(Vec<String>, Vec<String>), Error> {
-        let stems = self.glob_dir(root)?;
+    pub fn glob_diff(&self, known_stems: &[String]) -> Result<(Vec<String>, Vec<String>), Error> {
+        let stems = self.glob()?;
         let missing_stems = {
             let stems = stems.iter().collect::<HashSet<_>>();
             known_stems
@@ -100,13 +101,13 @@ impl GlobSpec {
         Ok((extra_stems, missing_stems))
     }
 
-    pub fn expand(&self, root: &Path, stem: &str) -> Option<Vec<PathBuf>> {
+    pub fn expand(&self, stem: &str) -> Option<Vec<PathBuf>> {
         let mut eligible = false;
         let mut paths = Vec::new();
         for arg in &self.args {
             // TODO: memoize parsing
             let path = arg.parse().unwrap().subst(stem)?;
-            let path = root.join(path);
+            let path = self.root.join(path);
             if path.exists() {
                 eligible = true
             }

@@ -128,7 +128,7 @@ fn generate_fn(
     quote! {
         #[test]
         fn #name() {
-            if let Some(paths) = #self_ref::__GLOB_SPEC.expand(std::path::Path::new("."), #stem) {
+            if let Some(paths) = #self_ref::__GLOB_SPEC.expand(#stem) {
                 #super_ref::#base_function_name(#(#arg_forwards),*);
             }
         }
@@ -160,14 +160,14 @@ fn generate_fallback_fn(
         fn __others() {
             let known_stems = #stems_literal;
             let (extra_stems, missing_stems) = self::__GLOB_SPEC
-                .glob_diff(std::path::Path::new("."), &known_stems)
+                .glob_diff(&known_stems)
                 .unwrap();
             for stem in &extra_stems {
                 if known_stems.contains(stem) {
                     continue;
                 }
                 let paths = self::__GLOB_SPEC
-                    .expand(std::path::Path::new("."), stem)
+                    .expand(stem)
                     .unwrap();
                 super::#base_function_name(#(#arg_forwards),*);
             }
@@ -265,39 +265,39 @@ mod tests {
                         });
                     #[test]
                     fn bar() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand(std::path::Path::new("."), "bar") {
+                        if let Some(paths) = self::__GLOB_SPEC.expand("bar") {
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
                     #[test]
                     fn foo() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand(std::path::Path::new("."), "foo") {
+                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
                     mod foo {
                         #[test]
                         fn bar_baz() {
-                            if let Some(paths) = super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar-baz") {
+                            if let Some(paths) = super::__GLOB_SPEC.expand("foo/bar-baz") {
                                 super::super::test_foo(&paths[0], &paths[1]);
                             }
                         }
                         #[test]
                         fn bar_baz_1() {
-                            if let Some(paths) = super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar_baz") {
+                            if let Some(paths) = super::__GLOB_SPEC.expand("foo/bar_baz") {
                                 super::super::test_foo(&paths[0], &paths[1]);
                             }
                         }
                         mod bar {
                             #[test]
                             fn _01_todo() {
-                                if let Some(paths) = super::super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar/01_todo") {
+                                if let Some(paths) = super::super::__GLOB_SPEC.expand("foo/bar/01_todo") {
                                     super::super::super::test_foo(&paths[0], &paths[1]);
                                 }
                             }
                             #[test]
                             fn baz() {
-                                if let Some(paths) = super::super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar/baz") {
+                                if let Some(paths) = super::super::__GLOB_SPEC.expand("foo/bar/baz") {
                                     super::super::super::test_foo(&paths[0], &paths[1]);
                                 }
                             }
@@ -314,14 +314,14 @@ mod tests {
                             "foo/bar_baz".to_owned()
                         ];
                         let (extra_stems, missing_stems) = self::__GLOB_SPEC
-                            .glob_diff(std::path::Path::new("."), &known_stems)
+                            .glob_diff(&known_stems)
                             .unwrap();
                         for stem in &extra_stems {
                             if known_stems.contains(stem) {
                                 continue;
                             }
                             let paths = self::__GLOB_SPEC
-                                .expand(std::path::Path::new("."), stem)
+                                .expand(stem)
                                 .unwrap();
                             super::test_foo(&paths[0], &paths[1]);
                         }
