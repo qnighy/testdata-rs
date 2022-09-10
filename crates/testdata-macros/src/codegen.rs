@@ -14,7 +14,12 @@ pub(crate) fn generate(
     item: &ItemFn,
     stems: &[String],
 ) -> TokenStream {
-    let spec_def = generate_glob_spec(spec);
+    let rt_root = if let Some(root) = &macro_args.root {
+        root
+    } else {
+        "."
+    };
+    let spec_def = generate_glob_spec(spec, rt_root);
 
     let function_name = &item.sig.ident;
     let tree = StemTree::build(&stems);
@@ -64,7 +69,7 @@ pub(crate) fn generate(
     }
 }
 
-fn generate_glob_spec(spec: &GlobSpec) -> TokenStream {
+fn generate_glob_spec(spec: &GlobSpec, rt_root: &str) -> TokenStream {
     let rt = get_rt();
     let args = spec
         .args
@@ -79,6 +84,7 @@ fn generate_glob_spec(spec: &GlobSpec) -> TokenStream {
     quote! {
         const __GLOB_SPEC: #rt::Lazy<#rt::GlobSpec> = #rt::Lazy::new(|| {
             #rt::GlobSpec::new()
+                .root(std::path::Path::new(#rt_root))
                 #(#args)*
         });
     }
@@ -280,6 +286,7 @@ mod tests {
                     const __GLOB_SPEC: testdata::__rt::Lazy<testdata::__rt::GlobSpec> =
                         testdata::__rt::Lazy::new(|| {
                             testdata::__rt::GlobSpec::new()
+                                .root(std::path::Path::new("."))
                                 .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-in.txt"))
                                 .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-out.txt"))
                         });
@@ -352,6 +359,70 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_with_root() {
+        let item = parse_quote! {
+            #[test]
+            fn test_foo(
+                #[glob = "tests/fixtures/**/*-in.txt"]
+                input: PathBuf,
+                #[glob = "tests/fixtures/**/*-out.txt"]
+                output: PathBuf,
+            ) {
+                foo();
+            }
+        };
+        let spec = GlobSpec::new()
+            .arg(ArgSpec::new("tests/fixtures/**/*-in.txt"))
+            .arg(ArgSpec::new("tests/fixtures/**/*-out.txt"));
+        let macro_args = MacroArgs {
+            rebuild: None,
+            root: Some("other_root".to_owned()),
+        };
+        let tokens = generate(&spec, &macro_args, &item, &[S("foo")]);
+        assert_ts_eq!(
+            tokens,
+            quote! {
+                #[cfg(test)]
+                fn test_foo(input: PathBuf, output: PathBuf,) {
+                    foo();
+                }
+                #[cfg(test)]
+                mod test_foo {
+                    const __GLOB_SPEC: testdata::__rt::Lazy<testdata::__rt::GlobSpec> =
+                        testdata::__rt::Lazy::new(|| {
+                            testdata::__rt::GlobSpec::new()
+                                .root(std::path::Path::new("other_root"))
+                                .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-in.txt"))
+                                .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-out.txt"))
+                        });
+                    #[test]
+                    fn foo() {
+                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
+                            super::test_foo(&paths[0], &paths[1]);
+                        }
+                    }
+                    #[test]
+                    fn __others() {
+                        let known_stems = vec!["foo".to_owned()];
+                        let (extra_stems, missing_stems) = self::__GLOB_SPEC
+                            .glob_diff(&known_stems)
+                            .unwrap();
+                        for stem in &extra_stems {
+                            if known_stems.contains(stem) {
+                                continue;
+                            }
+                            let paths = self::__GLOB_SPEC
+                                .expand(stem)
+                                .unwrap();
+                            super::test_foo(&paths[0], &paths[1]);
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    #[test]
     fn test_generate_rebuild() {
         let item = parse_quote! {
             #[test]
@@ -384,6 +455,7 @@ mod tests {
                     const __GLOB_SPEC: testdata::__rt::Lazy<testdata::__rt::GlobSpec> =
                         testdata::__rt::Lazy::new(|| {
                             testdata::__rt::GlobSpec::new()
+                                .root(std::path::Path::new("."))
                                 .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-in.txt"))
                                 .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-out.txt"))
                         });

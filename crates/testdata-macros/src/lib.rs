@@ -45,6 +45,9 @@ fn testdata2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream
     }
 
     let mut spec = GlobSpec::new();
+    if let Some(root) = &args.root {
+        spec.root = root.into();
+    }
     for attrs in &args_attrs {
         spec.args.push(testdata_rt::ArgSpec::new(&attrs.glob));
     }
