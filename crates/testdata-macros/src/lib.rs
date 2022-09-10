@@ -51,10 +51,5 @@ fn testdata2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream
 
     let stems = spec.glob().map_err(|e| syn::Error::new(span, e))?;
 
-    Ok(generate(&spec, &item, &stems))
-}
-
-#[derive(Debug, Clone)]
-struct ArgSpec {
-    glob: String,
+    Ok(generate(&spec, &args, &item, &stems))
 }

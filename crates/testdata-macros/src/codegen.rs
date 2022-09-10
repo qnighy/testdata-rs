@@ -5,9 +5,15 @@ use quote::quote;
 use syn::{punctuated::Punctuated, FnArg, ItemFn, Token};
 use testdata_rt::GlobSpec;
 
+use crate::attrs::MacroArgs;
 use crate::tree::{StemFn, StemTree};
 
-pub(crate) fn generate(spec: &GlobSpec, item: &ItemFn, stems: &[String]) -> TokenStream {
+pub(crate) fn generate(
+    spec: &GlobSpec,
+    macro_args: &MacroArgs,
+    item: &ItemFn,
+    stems: &[String],
+) -> TokenStream {
     let spec_def = generate_glob_spec(spec);
 
     let function_name = &item.sig.ident;
@@ -41,7 +47,7 @@ pub(crate) fn generate(spec: &GlobSpec, item: &ItemFn, stems: &[String]) -> Toke
         }
         base_function
     };
-    let fallback_fn = generate_fallback_fn(stems, &item.sig.inputs, function_name);
+    let fallback_fn = generate_fallback_fn(stems, macro_args, &item.sig.inputs, function_name);
 
     quote! {
         #[cfg(test)]
@@ -137,9 +143,11 @@ fn generate_fn(
 
 fn generate_fallback_fn(
     stems: &[String],
+    macro_args: &MacroArgs,
     args: &Punctuated<FnArg, Token![,]>,
     base_function_name: &Ident,
 ) -> TokenStream {
+    let rt = get_rt();
     let stems_literal = stems
         .iter()
         .map(|stem| quote! { #stem.to_owned() })
@@ -155,6 +163,15 @@ fn generate_fallback_fn(
             }
         })
         .collect::<Vec<_>>();
+    let rebuilder = if let Some(rebuild_path) = &macro_args.rebuild {
+        quote! {
+            if !extra_stems.is_empty() || !missing_stems.is_empty() {
+                #rt::touch(std::path::Path::new(#rebuild_path)).unwrap();
+            }
+        }
+    } else {
+        quote! {}
+    };
     quote! {
         #[test]
         fn __others() {
@@ -171,9 +188,7 @@ fn generate_fallback_fn(
                     .unwrap();
                 super::#base_function_name(#(#arg_forwards),*);
             }
-            if !extra_stems.is_empty() || !missing_stems.is_empty() {
-                // TODO: recompile
-            }
+            #rebuilder
         }
     }
 }
@@ -236,8 +251,13 @@ mod tests {
         let spec = GlobSpec::new()
             .arg(ArgSpec::new("tests/fixtures/**/*-in.txt"))
             .arg(ArgSpec::new("tests/fixtures/**/*-out.txt"));
+        let macro_args = MacroArgs {
+            rebuild: None,
+            root: None,
+        };
         let tokens = generate(
             &spec,
+            &macro_args,
             &item,
             &[
                 S("bar"),
@@ -325,7 +345,72 @@ mod tests {
                                 .unwrap();
                             super::test_foo(&paths[0], &paths[1]);
                         }
-                        if !extra_stems.is_empty() || !missing_stems.is_empty() {}
+                    }
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn test_generate_rebuild() {
+        let item = parse_quote! {
+            #[test]
+            fn test_foo(
+                #[glob = "tests/fixtures/**/*-in.txt"]
+                input: PathBuf,
+                #[glob = "tests/fixtures/**/*-out.txt"]
+                output: PathBuf,
+            ) {
+                foo();
+            }
+        };
+        let spec = GlobSpec::new()
+            .arg(ArgSpec::new("tests/fixtures/**/*-in.txt"))
+            .arg(ArgSpec::new("tests/fixtures/**/*-out.txt"));
+        let macro_args = MacroArgs {
+            rebuild: Some("test/integration.rs".to_owned()),
+            root: None,
+        };
+        let tokens = generate(&spec, &macro_args, &item, &[S("foo")]);
+        assert_ts_eq!(
+            tokens,
+            quote! {
+                #[cfg(test)]
+                fn test_foo(input: PathBuf, output: PathBuf,) {
+                    foo();
+                }
+                #[cfg(test)]
+                mod test_foo {
+                    const __GLOB_SPEC: testdata::__rt::Lazy<testdata::__rt::GlobSpec> =
+                        testdata::__rt::Lazy::new(|| {
+                            testdata::__rt::GlobSpec::new()
+                                .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-in.txt"))
+                                .arg(testdata::__rt::ArgSpec::new("tests/fixtures/**/*-out.txt"))
+                        });
+                    #[test]
+                    fn foo() {
+                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
+                            super::test_foo(&paths[0], &paths[1]);
+                        }
+                    }
+                    #[test]
+                    fn __others() {
+                        let known_stems = vec!["foo".to_owned()];
+                        let (extra_stems, missing_stems) = self::__GLOB_SPEC
+                            .glob_diff(&known_stems)
+                            .unwrap();
+                        for stem in &extra_stems {
+                            if known_stems.contains(stem) {
+                                continue;
+                            }
+                            let paths = self::__GLOB_SPEC
+                                .expand(stem)
+                                .unwrap();
+                            super::test_foo(&paths[0], &paths[1]);
+                        }
+                        if !extra_stems.is_empty() || !missing_stems.is_empty() {
+                            testdata::__rt::touch(std::path::Path::new("test/integration.rs")).unwrap();
+                        }
                     }
                 }
             }

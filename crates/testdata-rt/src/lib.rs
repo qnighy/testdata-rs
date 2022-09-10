@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::io;
 use std::path::{Path, PathBuf, StripPrefixError};
 
 use thiserror::Error as StdError;
@@ -189,6 +190,16 @@ enum GlobType {
     Recursive,
     /// `*`
     Single,
+}
+
+pub fn touch(path: &Path) -> io::Result<()> {
+    // Touch the file containing the test
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    utime::set_file_times(path, now as i64, now as i64)?;
+    Ok(())
 }
 
 #[cfg(test)]
