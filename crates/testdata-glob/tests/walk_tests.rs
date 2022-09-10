@@ -22,6 +22,33 @@ fn test_walk_dir() {
 }
 
 #[test]
+fn test_walk_diff() {
+    let spec = GlobSpec::new()
+        .arg(ArgSpec::new("data/**/*-in.txt"))
+        .arg(ArgSpec::new("data/**/*-out.txt"));
+    let (extra_stems, missing_stems) = spec
+        .glob_diff(
+            Path::new("tests/fixtures/project1"),
+            &[
+                "additional".to_owned(),
+                "baz".to_owned(),
+                "nested/foo".to_owned(),
+            ],
+        )
+        .unwrap();
+    assert_eq!(
+        extra_stems,
+        vec![
+            "bar".to_owned(),
+            "foo".to_owned(),
+            "nested/bar".to_owned(),
+            "nested/baz".to_owned(),
+        ]
+    );
+    assert_eq!(missing_stems, vec!["additional".to_owned(),]);
+}
+
+#[test]
 fn test_walk_dir_non_nested() {
     let spec = GlobSpec::new()
         .arg(ArgSpec::new("data/*-in.txt"))

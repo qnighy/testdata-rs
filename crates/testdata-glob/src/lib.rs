@@ -75,6 +75,31 @@ impl GlobSpec {
         Ok(sorted_stems)
     }
 
+    pub fn glob_diff(
+        &self,
+        root: &Path,
+        known_stems: &[String],
+    ) -> Result<(Vec<String>, Vec<String>), Error> {
+        let stems = self.glob_dir(root)?;
+        let missing_stems = {
+            let stems = stems.iter().collect::<HashSet<_>>();
+            known_stems
+                .iter()
+                .cloned()
+                .filter(|stem| !stems.contains(stem))
+                .collect::<Vec<_>>()
+        };
+        let extra_stems = {
+            let known_stems = known_stems.iter().collect::<HashSet<_>>();
+            stems
+                .iter()
+                .cloned()
+                .filter(|stem| !known_stems.contains(stem))
+                .collect::<Vec<_>>()
+        };
+        Ok((extra_stems, missing_stems))
+    }
+
     pub fn expand(&self, root: &Path, stem: &str) -> Option<Vec<PathBuf>> {
         let mut eligible = false;
         let mut paths = Vec::new();

@@ -13,7 +13,7 @@ pub(crate) fn generate(spec: &GlobSpec, item: &ItemFn, stems: &[String]) -> Toke
     let function_name = &item.sig.ident;
     let tree = StemTree::build(&stems);
 
-    let tree_tokens = generate_tree(&tree, 0, &item.sig.inputs);
+    let tree_tokens = generate_tree(&tree, 0, &item.sig.inputs, function_name);
 
     let base_function = {
         let mut base_function = item.clone();
@@ -41,7 +41,7 @@ pub(crate) fn generate(spec: &GlobSpec, item: &ItemFn, stems: &[String]) -> Toke
         }
         base_function
     };
-    let fallback_fn = generate_fallback_fn(stems, &item.sig.inputs);
+    let fallback_fn = generate_fallback_fn(stems, &item.sig.inputs, function_name);
 
     quote! {
         #[cfg(test)]
@@ -82,15 +82,16 @@ fn generate_tree(
     tree: &StemTree,
     depth: usize,
     args: &Punctuated<FnArg, Token![,]>,
+    base_function_name: &Ident,
 ) -> TokenStream {
     let fns = sorted_iter(&tree.fns)
-        .map(|(name, def)| generate_fn(name, def, depth, args))
+        .map(|(name, def)| generate_fn(name, def, depth, args, base_function_name))
         .collect::<Vec<_>>();
 
     let mods = sorted_iter(&tree.mods)
         .map(|(name, def)| {
             let name = Ident::new(name, Span::call_site());
-            let sub = generate_tree(def, depth + 1, args);
+            let sub = generate_tree(def, depth + 1, args, base_function_name);
             quote! {
                 mod #name {
                     #sub
@@ -110,6 +111,7 @@ fn generate_fn(
     def: &StemFn,
     depth: usize,
     args: &Punctuated<FnArg, Token![,]>,
+    base_function_name: &Ident,
 ) -> TokenStream {
     let self_ref = up(depth);
     let super_ref = up(depth + 1);
@@ -126,20 +128,24 @@ fn generate_fn(
     quote! {
         #[test]
         fn #name() {
-            if let Some(paths) = #self_ref::__GLOB_SPEC.expand(#stem) {
-                #super_ref::test(#(#arg_forwards),*);
+            if let Some(paths) = #self_ref::__GLOB_SPEC.expand(std::path::Path::new("."), #stem) {
+                #super_ref::#base_function_name(#(#arg_forwards),*);
             }
         }
     }
 }
 
-fn generate_fallback_fn(stems: &[String], args: &Punctuated<FnArg, Token![,]>) -> TokenStream {
+fn generate_fallback_fn(
+    stems: &[String],
+    args: &Punctuated<FnArg, Token![,]>,
+    base_function_name: &Ident,
+) -> TokenStream {
     let stems_literal = stems
         .iter()
         .map(|stem| quote! { #stem.to_owned() })
         .collect::<Vec<_>>();
     let stems_literal = quote! {
-        vec![#(#stems_literal),*].into_iter().collect::<std::collections::HashSet<_>>()
+        vec![#(#stems_literal),*]
     };
     let arg_forwards = (0..args.len())
         .map(|i| {
@@ -153,15 +159,19 @@ fn generate_fallback_fn(stems: &[String], args: &Punctuated<FnArg, Token![,]>) -
         #[test]
         fn __others() {
             let known_stems = #stems_literal;
-            let stems = self::__GLOB_SPEC.glob_dir(".").unwrap();
-            for stem in &stems {
+            let (extra_stems, missing_stems) = self::__GLOB_SPEC
+                .glob_diff(std::path::Path::new("."), &known_stems)
+                .unwrap();
+            for stem in &extra_stems {
                 if known_stems.contains(stem) {
                     continue;
                 }
-                let paths = self::__GLOB_SPEC.expand(stem).unwrap();
-                super::test(#(#arg_forwards),*);
+                let paths = self::__GLOB_SPEC
+                    .expand(std::path::Path::new("."), stem)
+                    .unwrap();
+                super::#base_function_name(#(#arg_forwards),*);
             }
-            if known_stems != stems {
+            if !extra_stems.is_empty() || !missing_stems.is_empty() {
                 // TODO: recompile
             }
         }
@@ -255,40 +265,40 @@ mod tests {
                         });
                     #[test]
                     fn bar() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand("bar") {
-                            super::test(&paths[0], &paths[1]);
+                        if let Some(paths) = self::__GLOB_SPEC.expand(std::path::Path::new("."), "bar") {
+                            super::test_foo(&paths[0], &paths[1]);
                         }
                     }
                     #[test]
                     fn foo() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
-                            super::test(&paths[0], &paths[1]);
+                        if let Some(paths) = self::__GLOB_SPEC.expand(std::path::Path::new("."), "foo") {
+                            super::test_foo(&paths[0], &paths[1]);
                         }
                     }
                     mod foo {
                         #[test]
                         fn bar_baz() {
-                            if let Some(paths) = super::__GLOB_SPEC.expand("foo/bar-baz") {
-                                super::super::test(&paths[0], &paths[1]);
+                            if let Some(paths) = super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar-baz") {
+                                super::super::test_foo(&paths[0], &paths[1]);
                             }
                         }
                         #[test]
                         fn bar_baz_1() {
-                            if let Some(paths) = super::__GLOB_SPEC.expand("foo/bar_baz") {
-                                super::super::test(&paths[0], &paths[1]);
+                            if let Some(paths) = super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar_baz") {
+                                super::super::test_foo(&paths[0], &paths[1]);
                             }
                         }
                         mod bar {
                             #[test]
                             fn _01_todo() {
-                                if let Some(paths) = super::super::__GLOB_SPEC.expand("foo/bar/01_todo") {
-                                    super::super::super::test(&paths[0], &paths[1]);
+                                if let Some(paths) = super::super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar/01_todo") {
+                                    super::super::super::test_foo(&paths[0], &paths[1]);
                                 }
                             }
                             #[test]
                             fn baz() {
-                                if let Some(paths) = super::super::__GLOB_SPEC.expand("foo/bar/baz") {
-                                    super::super::super::test(&paths[0], &paths[1]);
+                                if let Some(paths) = super::super::__GLOB_SPEC.expand(std::path::Path::new("."), "foo/bar/baz") {
+                                    super::super::super::test_foo(&paths[0], &paths[1]);
                                 }
                             }
                         }
@@ -302,18 +312,20 @@ mod tests {
                             "foo/bar/01_todo".to_owned(),
                             "foo/bar/baz".to_owned(),
                             "foo/bar_baz".to_owned()
-                        ]
-                        .into_iter()
-                        .collect::<std::collections::HashSet<_>>();
-                        let stems = self::__GLOB_SPEC.glob_dir(".").unwrap();
-                        for stem in &stems {
+                        ];
+                        let (extra_stems, missing_stems) = self::__GLOB_SPEC
+                            .glob_diff(std::path::Path::new("."), &known_stems)
+                            .unwrap();
+                        for stem in &extra_stems {
                             if known_stems.contains(stem) {
                                 continue;
                             }
-                            let paths = self::__GLOB_SPEC.expand(stem).unwrap();
-                            super::test(&paths[0], &paths[1]);
+                            let paths = self::__GLOB_SPEC
+                                .expand(std::path::Path::new("."), stem)
+                                .unwrap();
+                            super::test_foo(&paths[0], &paths[1]);
                         }
-                        if known_stems != stems {}
+                        if !extra_stems.is_empty() || !missing_stems.is_empty() {}
                     }
                 }
             }
