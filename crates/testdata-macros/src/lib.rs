@@ -49,7 +49,8 @@ fn testdata2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream
         spec.root = root.into();
     }
     for attrs in &args_attrs {
-        spec.args.push(testdata_rt::ArgSpec::new(&attrs.glob));
+        spec.args
+            .push(testdata_rt::ArgSpec::parse(&attrs.glob).map_err(|e| syn::Error::new(span, e))?);
     }
 
     let stems = spec.glob().map_err(|e| syn::Error::new(span, e))?;

@@ -75,7 +75,7 @@ fn generate_glob_spec(spec: &GlobSpec, rt_root: &str) -> TokenStream {
         .args
         .iter()
         .map(|arg| {
-            let path = &arg.path;
+            let path = arg.glob.to_string();
             quote! {
                 .arg(#rt::ArgSpec::new(#path))
             }

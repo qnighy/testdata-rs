@@ -1,9 +1,13 @@
+mod patterns;
+
 use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf, StripPrefixError};
 
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
+
+pub use crate::patterns::{GlobParseError, GlobPattern};
 
 #[derive(Debug, StdError)]
 pub enum Error {
@@ -13,10 +17,6 @@ pub enum Error {
     StripPrefix(#[source] StripPrefixError, PathBuf, PathBuf),
     #[error("Got a non-utf8 path: {0:?}")]
     InvalidPath(PathBuf),
-    #[error("Invalid glob: {0:?}")]
-    InvalidGlob(String),
-    #[error("Different glob types are mixed")]
-    MixedGlob,
 }
 
 #[derive(Debug, Clone)]
@@ -46,17 +46,6 @@ impl GlobSpec {
 
     pub fn glob(&self) -> Result<Vec<String>, Error> {
         let mut stems = HashSet::new();
-        let args = self
-            .args
-            .iter()
-            .map(|arg| arg.parse())
-            .collect::<Result<Vec<_>, _>>()?;
-        if !args.is_empty() {
-            let glob_type = args[0].glob_type;
-            if !args.iter().all(|arg| arg.glob_type == glob_type) {
-                return Err(Error::MixedGlob);
-            }
-        };
         for entry in WalkDir::new(&self.root).sort_by_file_name() {
             let entry = entry?;
             let file_name = entry
@@ -66,8 +55,8 @@ impl GlobSpec {
             let file_name = file_name
                 .to_str()
                 .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
-            for arg in &args {
-                if let Some(stem) = arg.extract(file_name) {
+            for arg in &self.args {
+                if let Some(stem) = arg.glob.do_match(file_name) {
                     stems.insert(stem.to_owned());
                 }
             }
@@ -106,8 +95,7 @@ impl GlobSpec {
         let mut eligible = false;
         let mut paths = Vec::new();
         for arg in &self.args {
-            // TODO: memoize parsing
-            let path = arg.parse().unwrap().subst(stem)?;
+            let path = arg.glob.subst(stem)?;
             let path = self.root.join(path);
             if path.exists() {
                 eligible = true
@@ -125,71 +113,19 @@ impl GlobSpec {
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct ArgSpec {
-    pub path: String,
+    pub glob: GlobPattern,
 }
 
 impl ArgSpec {
-    pub fn new(path: &str) -> Self {
-        Self {
-            path: path.to_owned(),
-        }
+    pub fn new(glob: &str) -> Self {
+        Self::parse(glob).unwrap()
     }
 
-    fn parse(&self) -> Result<ParsedArgSpec, Error> {
-        let pos = self
-            .path
-            .find('*')
-            .ok_or_else(|| Error::InvalidGlob(self.path.clone()))?;
-        let (pos2, glob_type) = if self.path[pos..].starts_with("**/*") {
-            (pos + 4, GlobType::Recursive)
-        } else {
-            (pos + 1, GlobType::Single)
-        };
-        let suffix = &self.path[pos2..];
-        if suffix.contains('*') {
-            return Err(Error::InvalidGlob(self.path.clone()));
-        }
-        Ok(ParsedArgSpec {
-            prefix: self.path[..pos].to_owned(),
-            glob_type,
-            suffix: suffix.to_owned(),
+    pub fn parse(glob: &str) -> Result<Self, GlobParseError> {
+        Ok(Self {
+            glob: glob.parse()?,
         })
     }
-}
-
-#[derive(Debug)]
-struct ParsedArgSpec {
-    prefix: String,
-    glob_type: GlobType,
-    suffix: String,
-}
-
-impl ParsedArgSpec {
-    fn extract<'a>(&self, file_name: &'a str) -> Option<&'a str> {
-        if file_name.starts_with(&self.prefix) && file_name.ends_with(&self.suffix) {
-            let stem = &file_name[self.prefix.len()..file_name.len() - self.suffix.len()];
-            if self.glob_type == GlobType::Recursive || !stem.contains('/') {
-                return Some(stem);
-            }
-        }
-        None
-    }
-
-    fn subst(&self, stem: &str) -> Option<String> {
-        if self.glob_type == GlobType::Recursive || !stem.contains('/') {
-            Some(format!("{}{}{}", self.prefix, stem, self.suffix))
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum GlobType {
-    /// `**/*`
-    Recursive,
-    /// `*`
-    Single,
 }
 
 pub fn touch(path: &Path) -> io::Result<()> {
@@ -200,21 +136,4 @@ pub fn touch(path: &Path) -> io::Result<()> {
         .unwrap_or(0);
     utime::set_file_times(path, now as i64, now as i64)?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_glob_type_clone() {
-        let _ = GlobType::Recursive.clone();
-        let _ = GlobType::Single.clone();
-    }
-
-    #[test]
-    fn test_glob_type_debug() {
-        let _ = format!("{:?}", GlobType::Recursive);
-        let _ = format!("{:?}", GlobType::Single);
-    }
 }

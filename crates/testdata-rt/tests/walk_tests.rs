@@ -61,34 +61,6 @@ fn test_walk_dir_non_nested() {
 }
 
 #[test]
-fn test_walk_dir_invalid_glob1() {
-    let spec = GlobSpec::new()
-        .root(Path::new("tests/fixtures/project1"))
-        .arg(ArgSpec::new("data/*-*.txt"));
-    let e = spec.glob().unwrap_err();
-    assert_eq!(e.to_string(), "Invalid glob: \"data/*-*.txt\"");
-}
-
-#[test]
-fn test_walk_dir_invalid_glob2() {
-    let spec = GlobSpec::new()
-        .root(Path::new("tests/fixtures/project1"))
-        .arg(ArgSpec::new("data/in.txt"));
-    let e = spec.glob().unwrap_err();
-    assert_eq!(e.to_string(), "Invalid glob: \"data/in.txt\"");
-}
-
-#[test]
-fn test_walk_dir_mixed_glob() {
-    let spec = GlobSpec::new()
-        .root(Path::new("tests/fixtures/project1"))
-        .arg(ArgSpec::new("data/**/*-in.txt"))
-        .arg(ArgSpec::new("data/*-out.txt"));
-    let e = spec.glob().unwrap_err();
-    assert_eq!(e.to_string(), "Different glob types are mixed");
-}
-
-#[test]
 fn test_walk_dir_no_args() {
     let spec = GlobSpec::new().root(Path::new("tests/fixtures/project1"));
     let stems = spec.glob().unwrap();
@@ -98,12 +70,12 @@ fn test_walk_dir_no_args() {
 #[test]
 fn test_error_source() {
     use std::error::Error as StdError;
-    let _ = Error::InvalidGlob("".into()).source();
+    let _ = Error::InvalidPath("".into()).source();
 }
 
 #[test]
 fn test_error_debug() {
-    let _ = format!("{:?}", Error::InvalidGlob("".into()));
+    let _ = format!("{:?}", Error::InvalidPath("".into()));
 }
 
 #[test]
