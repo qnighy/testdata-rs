@@ -15,9 +15,7 @@ pub enum GlobParseError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GlobPattern {
-    prefix: String,
-    wildcard: Wildcard,
-    suffix: String,
+    branches: Vec<GlobBranch>,
 }
 
 impl GlobPattern {
@@ -25,7 +23,56 @@ impl GlobPattern {
         src.parse().unwrap()
     }
 
-    pub fn do_match<'a>(&self, file_name: &'a str) -> Option<&'a str> {
+    pub fn do_match<'a>(&self, file_name: &'a str) -> Vec<&'a str> {
+        let mut matches = Vec::new();
+        for branch in &self.branches {
+            if let Some(m) = branch.do_match(file_name) {
+                matches.push(m);
+            }
+        }
+        matches
+    }
+
+    pub fn subst(&self, stem: &str) -> Vec<String> {
+        self.branches
+            .iter()
+            .filter_map(|branch| branch.subst(stem))
+            .collect::<Vec<_>>()
+    }
+}
+
+impl FromStr for GlobPattern {
+    type Err = GlobParseError;
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        let branches = src
+            .split(",")
+            .map(|branch| branch.parse::<GlobBranch>())
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { branches })
+    }
+}
+
+impl fmt::Display for GlobPattern {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for (i, branch) in self.branches.iter().enumerate() {
+            if i > 0 {
+                f.write_str(",")?;
+            }
+            write!(f, "{}", branch)?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct GlobBranch {
+    prefix: String,
+    wildcard: Wildcard,
+    suffix: String,
+}
+
+impl GlobBranch {
+    fn do_match<'a>(&self, file_name: &'a str) -> Option<&'a str> {
         if file_name.starts_with(&self.prefix) && file_name.ends_with(&self.suffix) {
             let stem = &file_name[self.prefix.len()..file_name.len() - self.suffix.len()];
             if self.wildcard == Wildcard::Recursive || !stem.contains('/') {
@@ -35,7 +82,7 @@ impl GlobPattern {
         None
     }
 
-    pub fn subst(&self, stem: &str) -> Option<String> {
+    fn subst(&self, stem: &str) -> Option<String> {
         if self.wildcard == Wildcard::Recursive || !stem.contains('/') {
             Some(format!("{}{}{}", self.prefix, stem, self.suffix))
         } else {
@@ -44,7 +91,7 @@ impl GlobPattern {
     }
 }
 
-impl FromStr for GlobPattern {
+impl FromStr for GlobBranch {
     type Err = GlobParseError;
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         let pos = src.find('*').ok_or_else(|| GlobParseError::NoWildcard {
@@ -73,7 +120,7 @@ impl FromStr for GlobPattern {
     }
 }
 
-impl fmt::Display for GlobPattern {
+impl fmt::Display for GlobBranch {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}{}{}", self.prefix, self.wildcard, self.suffix)
     }
@@ -106,18 +153,40 @@ mod tests {
         assert_eq!(
             GlobPattern::new("tests/fixtures/**/*-in.txt"),
             GlobPattern {
-                prefix: "tests/fixtures/".to_owned(),
-                wildcard: Wildcard::Recursive,
-                suffix: "-in.txt".to_owned(),
+                branches: vec![GlobBranch {
+                    prefix: "tests/fixtures/".to_owned(),
+                    wildcard: Wildcard::Recursive,
+                    suffix: "-in.txt".to_owned(),
+                }]
             }
         );
 
         assert_eq!(
             GlobPattern::new("tests/fixtures/*-out.txt"),
             GlobPattern {
-                prefix: "tests/fixtures/".to_owned(),
-                wildcard: Wildcard::Single,
-                suffix: "-out.txt".to_owned(),
+                branches: vec![GlobBranch {
+                    prefix: "tests/fixtures/".to_owned(),
+                    wildcard: Wildcard::Single,
+                    suffix: "-out.txt".to_owned(),
+                }]
+            }
+        );
+
+        assert_eq!(
+            GlobPattern::new("foo/*.txt,bar/*.txt"),
+            GlobPattern {
+                branches: vec![
+                    GlobBranch {
+                        prefix: "foo/".to_owned(),
+                        wildcard: Wildcard::Single,
+                        suffix: ".txt".to_owned(),
+                    },
+                    GlobBranch {
+                        prefix: "bar/".to_owned(),
+                        wildcard: Wildcard::Single,
+                        suffix: ".txt".to_owned(),
+                    }
+                ]
             }
         );
     }
@@ -154,6 +223,7 @@ mod tests {
             "tests/fixtures/*-out.txt",
             "*.rs",
             "tests/fixtures/**/*",
+            "foo/*.txt,bar/*.rs",
         ];
         for &case in &cases {
             assert_eq!(GlobPattern::new(case).to_string(), case);
@@ -162,31 +232,52 @@ mod tests {
 
     #[test]
     fn test_match() {
+        let empty: Vec<&str> = vec![];
+
         let pat = GlobPattern::new("tests/fixtures/**/*-in.txt");
-        assert_eq!(pat.do_match("tests/fixtures/foo-in.txt"), Some("foo"));
+        assert_eq!(pat.do_match("tests/fixtures/foo-in.txt"), vec!["foo"]);
         assert_eq!(
             pat.do_match("tests/fixtures/foo/bar-in.txt"),
-            Some("foo/bar")
+            vec!["foo/bar"]
         );
-        assert_eq!(pat.do_match("tests/fixtures/foo-out.txt"), None);
+        assert_eq!(pat.do_match("tests/fixtures/foo-out.txt"), empty);
 
         let pat = GlobPattern::new("tests/fixtures/*-in.txt");
-        assert_eq!(pat.do_match("tests/fixtures/foo-in.txt"), Some("foo"));
-        assert_eq!(pat.do_match("tests/fixtures/foo/bar-in.txt"), None);
-        assert_eq!(pat.do_match("tests/fixtures/foo-out.txt"), None);
+        assert_eq!(pat.do_match("tests/fixtures/foo-in.txt"), vec!["foo"]);
+        assert_eq!(pat.do_match("tests/fixtures/foo/bar-in.txt"), empty);
+        assert_eq!(pat.do_match("tests/fixtures/foo-out.txt"), empty);
+
+        let pat = GlobPattern::new("foo/**/*.txt,foo/bar/**/*.txt");
+        assert_eq!(pat.do_match("foo/a.txt"), vec!["a"]);
+        assert_eq!(pat.do_match("foo/bar/a.txt"), vec!["bar/a", "a"]);
     }
 
     #[test]
     fn test_subst() {
+        let empty: Vec<&str> = vec![];
+
         let pat = GlobPattern::new("tests/fixtures/**/*-in.txt");
-        assert_eq!(pat.subst("foo"), Some("tests/fixtures/foo-in.txt".into()));
+        assert_eq!(
+            pat.subst("foo"),
+            vec!["tests/fixtures/foo-in.txt".to_owned()]
+        );
         assert_eq!(
             pat.subst("foo/bar"),
-            Some("tests/fixtures/foo/bar-in.txt".into())
+            vec!["tests/fixtures/foo/bar-in.txt".to_owned()]
         );
 
         let pat = GlobPattern::new("tests/fixtures/*-in.txt");
-        assert_eq!(pat.subst("foo"), Some("tests/fixtures/foo-in.txt".into()));
-        assert_eq!(pat.subst("foo/bar"), None);
+        assert_eq!(
+            pat.subst("foo"),
+            vec!["tests/fixtures/foo-in.txt".to_owned()]
+        );
+        assert_eq!(pat.subst("foo/bar"), empty);
+
+        let pat = GlobPattern::new("foo/*.txt,bar/*.rs");
+        assert_eq!(
+            pat.subst("a"),
+            vec!["foo/a.txt".to_owned(), "bar/a.rs".to_owned()]
+        );
+        assert_eq!(pat.subst("foo/bar"), empty);
     }
 }

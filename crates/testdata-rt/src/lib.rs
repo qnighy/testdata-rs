@@ -56,7 +56,7 @@ impl GlobSpec {
                 .to_str()
                 .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
             for arg in &self.args {
-                if let Some(stem) = arg.glob.do_match(file_name) {
+                for stem in arg.glob.do_match(file_name) {
                     stems.insert(stem.to_owned());
                 }
             }
@@ -95,12 +95,22 @@ impl GlobSpec {
         let mut eligible = false;
         let mut paths = Vec::new();
         for arg in &self.args {
-            let path = arg.glob.subst(stem)?;
-            let path = self.root.join(path);
-            if path.exists() {
-                eligible = true
+            let candidates = arg
+                .glob
+                .subst(stem)
+                .iter()
+                .map(|stem| self.root.join(stem))
+                .collect::<Vec<_>>();
+            if candidates.is_empty() {
+                return None;
             }
-            paths.push(path);
+            let existing_path = candidates.iter().find(|path| path.exists());
+            if let Some(existing_path) = existing_path {
+                eligible = true;
+                paths.push(existing_path.clone());
+            } else {
+                paths.push(candidates[0].clone());
+            }
         }
         if eligible {
             Some(paths)
