@@ -39,6 +39,13 @@ impl GlobPattern {
             .filter_map(|branch| branch.subst(stem))
             .collect::<Vec<_>>()
     }
+
+    pub fn prefixes(&self) -> Vec<String> {
+        self.branches
+            .iter()
+            .map(|branch| branch.prefix.clone())
+            .collect::<Vec<_>>()
+    }
 }
 
 impl FromStr for GlobPattern {

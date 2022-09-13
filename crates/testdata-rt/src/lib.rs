@@ -46,18 +46,20 @@ impl GlobSpec {
 
     pub fn glob(&self) -> Result<Vec<String>, Error> {
         let mut stems = HashSet::new();
-        for entry in WalkDir::new(&self.root).sort_by_file_name() {
-            let entry = entry?;
-            let file_name = entry
-                .path()
-                .strip_prefix(&self.root)
-                .map_err(|e| Error::StripPrefix(e, self.root.clone(), entry.path().to_owned()))?;
-            let file_name = file_name
-                .to_str()
-                .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
-            for arg in &self.args {
-                for stem in arg.glob.do_match(file_name) {
-                    stems.insert(stem.to_owned());
+        for prefix in &self.prefixes() {
+            let walk_root = self.root.join(prefix);
+            for entry in WalkDir::new(&walk_root).sort_by_file_name() {
+                let entry = entry?;
+                let file_name = entry.path().strip_prefix(&self.root).map_err(|e| {
+                    Error::StripPrefix(e, self.root.clone(), entry.path().to_owned())
+                })?;
+                let file_name = file_name
+                    .to_str()
+                    .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
+                for arg in &self.args {
+                    for stem in arg.glob.do_match(file_name) {
+                        stems.insert(stem.to_owned());
+                    }
                 }
             }
         }
@@ -117,6 +119,36 @@ impl GlobSpec {
         } else {
             None
         }
+    }
+
+    fn prefixes(&self) -> Vec<String> {
+        let mut prefixes = Vec::new();
+        for arg in &self.args {
+            prefixes.extend_from_slice(&arg.glob.prefixes());
+        }
+        for prefix in &mut prefixes {
+            let pos = prefix.rfind('/').unwrap_or(0);
+            prefix.truncate(pos);
+            prefix.push('/');
+        }
+        prefixes.sort();
+        let mut last = 0;
+        for i in 1..prefixes.len() {
+            if prefixes[i].starts_with(&prefixes[last]) {
+                prefixes[i].clear();
+            } else {
+                last = i;
+            }
+        }
+        // prefixes.drain_filter(|elem| elem.is_empty());
+        prefixes = prefixes
+            .into_iter()
+            .filter(|elem| !elem.is_empty())
+            .collect::<Vec<_>>();
+        for p in &mut prefixes {
+            p.pop();
+        }
+        prefixes
     }
 }
 
