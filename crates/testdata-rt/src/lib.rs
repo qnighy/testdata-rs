@@ -45,14 +45,19 @@ impl GlobSpec {
     }
 
     pub fn glob(&self) -> Result<Vec<String>, Error> {
+        self.glob_from(Path::new(""))
+    }
+    pub fn glob_from(&self, cwd: &Path) -> Result<Vec<String>, Error> {
+        let root = cwd.join(&self.root);
         let mut stems = HashSet::new();
         for prefix in &self.prefixes() {
-            let walk_root = self.root.join(prefix);
+            let walk_root = root.join(prefix);
             for entry in WalkDir::new(&walk_root).sort_by_file_name() {
                 let entry = entry?;
-                let file_name = entry.path().strip_prefix(&self.root).map_err(|e| {
-                    Error::StripPrefix(e, self.root.clone(), entry.path().to_owned())
-                })?;
+                let file_name = entry
+                    .path()
+                    .strip_prefix(&root)
+                    .map_err(|e| Error::StripPrefix(e, root.clone(), entry.path().to_owned()))?;
                 let file_name = file_name
                     .to_str()
                     .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;

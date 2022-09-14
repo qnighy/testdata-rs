@@ -5,6 +5,9 @@ mod sanitization;
 mod testing;
 mod tree;
 
+use std::env;
+use std::path::PathBuf;
+
 use proc_macro2::TokenStream;
 use syn::spanned::Spanned;
 use syn::{parse2, Item};
@@ -53,7 +56,10 @@ fn testdata2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream
             .push(testdata_rt::ArgSpec::parse(&attrs.glob).map_err(|e| syn::Error::new(span, e))?);
     }
 
-    let stems = spec.glob().map_err(|e| syn::Error::new(span, e))?;
+    let cwd = env::var_os("CARGO_MANIFEST_DIR")
+        .ok_or_else(|| syn::Error::new(span, "Missing CARGO_MANIFEST_DIR"))?;
+    let cwd = PathBuf::from(cwd);
+    let stems = spec.glob_from(&cwd).map_err(|e| syn::Error::new(span, e))?;
 
     Ok(generate(&spec, &args, &item, &stems))
 }
