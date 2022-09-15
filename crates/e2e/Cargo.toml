@@ -8,3 +8,6 @@ publish = false
 
 [dependencies]
 testdata = { path = "../.." }
+
+[features]
+e2e = []
