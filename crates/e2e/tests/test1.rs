@@ -1,12 +1,11 @@
 #![cfg(feature = "e2e")]
 
-use std::fs;
-use std::path::Path;
+use testdata::Fixture;
 
 #[testdata::testdata(rebuild = "crates/e2e/tests/test1.rs")]
 #[test]
-fn test_foo(#[glob = "tests/fixtures/**/*-in.txt"] input: &Path) {
-    let text = fs::read(input).unwrap();
+fn test_foo(#[glob = "tests/fixtures/**/*-in.txt"] input: &Fixture) {
+    let text = input.raw_read();
     let text = String::from_utf8_lossy(&text).into_owned();
     assert_eq!(text, "ok\n");
 }

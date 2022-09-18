@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use testdata_rt::{ArgSpec, GlobSpec};
+use testdata_rt::{ArgSpec, Fixture, GlobSpec};
 
 #[test]
 fn test_expand() {
@@ -11,44 +11,80 @@ fn test_expand() {
     assert_eq!(
         spec.expand("bar"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/bar-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/bar-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-in.txt")],
+            },
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-out.txt")],
+            },
         ])
     );
     assert_eq!(
         spec.expand("baz"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/baz-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/baz-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-in.txt")],
+            },
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-out.txt")],
+            },
         ])
     );
     assert_eq!(
         spec.expand("foo"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/foo-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/foo-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-in.txt")],
+            },
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-out.txt")],
+            },
         ])
     );
     assert_eq!(spec.expand("fooo"), None);
     assert_eq!(
         spec.expand("nested/bar"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/nested/bar-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/nested/bar-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from(
+                    "tests/fixtures/project1/data/nested/bar-in.txt"
+                )],
+            },
+            Fixture {
+                paths: vec![PathBuf::from(
+                    "tests/fixtures/project1/data/nested/bar-out.txt"
+                )],
+            },
         ])
     );
     assert_eq!(
         spec.expand("nested/baz"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/nested/baz-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/nested/baz-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from(
+                    "tests/fixtures/project1/data/nested/baz-in.txt"
+                )],
+            },
+            Fixture {
+                paths: vec![PathBuf::from(
+                    "tests/fixtures/project1/data/nested/baz-out.txt"
+                )],
+            },
         ])
     );
     assert_eq!(
         spec.expand("nested/foo"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/nested/foo-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/nested/foo-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from(
+                    "tests/fixtures/project1/data/nested/foo-in.txt"
+                )],
+            },
+            Fixture {
+                paths: vec![PathBuf::from(
+                    "tests/fixtures/project1/data/nested/foo-out.txt"
+                )],
+            },
         ])
     );
     assert_eq!(spec.expand("nested/fooo"), None);
@@ -63,22 +99,34 @@ fn test_expand_non_nested() {
     assert_eq!(
         spec.expand("bar"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/bar-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/bar-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-in.txt")],
+            },
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-out.txt")],
+            },
         ])
     );
     assert_eq!(
         spec.expand("baz"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/baz-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/baz-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-in.txt")],
+            },
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-out.txt")],
+            },
         ])
     );
     assert_eq!(
         spec.expand("foo"),
         Some(vec![
-            PathBuf::from("tests/fixtures/project1/data/foo-in.txt"),
-            PathBuf::from("tests/fixtures/project1/data/foo-out.txt"),
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-in.txt")],
+            },
+            Fixture {
+                paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-out.txt")],
+            },
         ])
     );
     assert_eq!(spec.expand("fooo"), None);

@@ -1,3 +1,4 @@
+mod fixtures;
 mod patterns;
 
 use std::collections::HashSet;
@@ -7,6 +8,7 @@ use std::path::{Path, PathBuf, StripPrefixError};
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
+pub use crate::fixtures::Fixture;
 pub use crate::patterns::{GlobParseError, GlobPattern};
 
 #[derive(Debug, StdError)]
@@ -98,29 +100,22 @@ impl GlobSpec {
         Ok((extra_stems, missing_stems))
     }
 
-    pub fn expand(&self, stem: &str) -> Option<Vec<PathBuf>> {
-        let mut eligible = false;
-        let mut paths = Vec::new();
+    pub fn expand(&self, stem: &str) -> Option<Vec<Fixture>> {
+        let mut fixtures = Vec::new();
         for arg in &self.args {
-            let candidates = arg
+            let paths = arg
                 .glob
                 .subst(stem)
                 .iter()
                 .map(|stem| self.root.join(stem))
                 .collect::<Vec<_>>();
-            if candidates.is_empty() {
+            if paths.is_empty() {
                 return None;
             }
-            let existing_path = candidates.iter().find(|path| path.exists());
-            if let Some(existing_path) = existing_path {
-                eligible = true;
-                paths.push(existing_path.clone());
-            } else {
-                paths.push(candidates[0].clone());
-            }
+            fixtures.push(Fixture { paths });
         }
-        if eligible {
-            Some(paths)
+        if fixtures.iter().any(|f| f.exists()) {
+            Some(fixtures)
         } else {
             None
         }
