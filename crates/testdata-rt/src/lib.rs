@@ -5,6 +5,8 @@ use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf, StripPrefixError};
 
+use path_slash::PathBufExt as _;
+use path_slash::PathExt as _;
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
@@ -53,7 +55,7 @@ impl GlobSpec {
         let root = cwd.join(&self.root);
         let mut stems = HashSet::new();
         for prefix in &self.prefixes() {
-            let walk_root = root.join(prefix);
+            let walk_root = root.join(PathBuf::from_slash(prefix));
             for entry in WalkDir::new(&walk_root).sort_by_file_name() {
                 let entry = entry?;
                 let file_name = entry
@@ -61,10 +63,10 @@ impl GlobSpec {
                     .strip_prefix(&root)
                     .map_err(|e| Error::StripPrefix(e, root.clone(), entry.path().to_owned()))?;
                 let file_name = file_name
-                    .to_str()
+                    .to_slash()
                     .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
                 for arg in &self.args {
-                    for stem in arg.glob.do_match(file_name) {
+                    for stem in arg.glob.do_match(&file_name) {
                         stems.insert(stem.to_owned());
                     }
                 }
@@ -107,7 +109,7 @@ impl GlobSpec {
                 .glob
                 .subst(stem)
                 .iter()
-                .map(|stem| self.root.join(stem))
+                .map(|stem| self.root.join(PathBuf::from_slash(stem)))
                 .collect::<Vec<_>>();
             if paths.is_empty() {
                 return None;

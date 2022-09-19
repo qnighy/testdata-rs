@@ -23,6 +23,25 @@ fn test_walk_dir() {
 }
 
 #[test]
+fn test_walk_dir2() {
+    let spec = GlobSpec::new()
+        .arg(ArgSpec::new("tests/fixtures/project1/data/**/*-in.txt"))
+        .arg(ArgSpec::new("tests/fixtures/project1/data/**/*-out.txt"));
+    let stems = spec.glob().unwrap();
+    assert_eq!(
+        stems,
+        vec![
+            "bar".to_owned(),
+            "baz".to_owned(),
+            "foo".to_owned(),
+            "nested/bar".to_owned(),
+            "nested/baz".to_owned(),
+            "nested/foo".to_owned()
+        ]
+    );
+}
+
+#[test]
 fn test_walk_diff() {
     let spec = GlobSpec::new()
         .root(Path::new("tests/fixtures/project1"))

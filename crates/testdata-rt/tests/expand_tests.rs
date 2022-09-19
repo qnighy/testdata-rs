@@ -87,6 +87,21 @@ fn test_expand() {
             },
         ])
     );
+    if cfg!(windows) {
+        assert_eq!(
+            spec.expand("nested/foo").unwrap()[0].paths[0]
+                .to_str()
+                .unwrap(),
+            "tests/fixtures/project1\\data\\nested\\foo-in.txt",
+        );
+    } else {
+        assert_eq!(
+            spec.expand("nested/foo").unwrap()[0].paths[0]
+                .to_str()
+                .unwrap(),
+            "tests/fixtures/project1/data/nested/foo-in.txt",
+        );
+    }
     assert_eq!(spec.expand("nested/fooo"), None);
 }
 
