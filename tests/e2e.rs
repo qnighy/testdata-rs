@@ -10,5 +10,6 @@ fn test_e2e() {
     let stdout = String::from_utf8_lossy(&cmd.stdout);
     assert!(stdout.contains("test test_foo::foo ... ok"));
     assert!(stdout.contains("test test_foo::bar ... FAILED"));
+    assert!(stdout.contains("test test_foo::bar2 ... ok"));
     assert!(stdout.contains("test test_foo::__others ... ok"));
 }

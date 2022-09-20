@@ -10,7 +10,7 @@ use path_slash::PathExt as _;
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
-pub use crate::fixtures::Fixture;
+pub use crate::fixtures::{pending, Fixture};
 pub use crate::patterns::{GlobParseError, GlobPattern};
 
 #[derive(Debug, StdError)]
