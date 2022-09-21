@@ -63,7 +63,11 @@ impl Fixture {
     }
 
     pub fn try_raw_write(&self, contents: &[u8]) -> io::Result<()> {
-        fs::write(self.path_for_writing(), contents)
+        let path = self.path_for_writing();
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, contents)
     }
 
     pub fn exists(&self) -> bool {
