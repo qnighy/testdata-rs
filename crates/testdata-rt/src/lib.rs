@@ -1,5 +1,8 @@
 mod fixtures;
+mod formats;
 mod patterns;
+mod snapshots;
+mod test_input;
 
 use std::collections::HashSet;
 use std::io;
@@ -11,7 +14,11 @@ use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
 pub use crate::fixtures::{pending, Fixture};
+#[cfg(feature = "serde_json")]
+pub use crate::formats::json::Json;
 pub use crate::patterns::{GlobParseError, GlobPattern};
+pub use crate::snapshots::{assert_snapshot_helper, Snapshot, SnapshotMode};
+pub use crate::test_input::TestInput;
 
 #[derive(Debug, StdError)]
 pub enum Error {
