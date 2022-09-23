@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use testdata_rt::{ArgSpec, Error, GlobSpec};
+use testdata_rt::{ArgSpec, GlobError, GlobSpec};
 
 #[test]
 fn test_walk_dir() {
@@ -89,12 +89,12 @@ fn test_walk_dir_no_args() {
 #[test]
 fn test_error_source() {
     use std::error::Error as StdError;
-    let _ = Error::InvalidPath("".into()).source();
+    let _ = GlobError::InvalidPath("".into()).source();
 }
 
 #[test]
 fn test_error_debug() {
-    let _ = format!("{:?}", Error::InvalidPath("".into()));
+    let _ = format!("{:?}", GlobError::InvalidPath("".into()));
 }
 
 #[test]

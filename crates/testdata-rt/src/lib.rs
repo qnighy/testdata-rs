@@ -15,7 +15,7 @@ use std::path::Path;
 pub use crate::fixtures::{pending, Fixture};
 #[cfg(any(feature = "serde_json", all(feature = "__doc_cfg", doc)))]
 pub use crate::formats::json::Json;
-pub use crate::globbing::{ArgSpec, Error, GlobSpec};
+pub use crate::globbing::{ArgSpec, GlobError, GlobSpec};
 pub use crate::patterns::{GlobParseError, GlobPattern};
 pub use crate::snapshots::{assert_snapshot_helper, Snapshot, SnapshotMode};
 pub use crate::test_input::TestInput;

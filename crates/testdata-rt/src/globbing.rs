@@ -11,7 +11,7 @@ use crate::patterns::{GlobParseError, GlobPattern};
 
 /// Represents the glob error.
 #[derive(Debug, StdError)]
-pub enum Error {
+pub enum GlobError {
     #[error("Error during walk: {0}")]
     Walkdir(#[from] walkdir::Error),
     #[error("Cannot compute relative path from {} to {}", .1.display(), .2.display())]
@@ -52,24 +52,23 @@ impl GlobSpec {
     }
 
     /// Searches for the test files.
-    pub fn glob(&self) -> Result<Vec<String>, Error> {
+    pub fn glob(&self) -> Result<Vec<String>, GlobError> {
         self.glob_from(Path::new(""))
     }
     /// Searches for the test files, with custom working directory.
-    pub fn glob_from(&self, cwd: &Path) -> Result<Vec<String>, Error> {
+    pub fn glob_from(&self, cwd: &Path) -> Result<Vec<String>, GlobError> {
         let root = cwd.join(&self.root);
         let mut stems = HashSet::new();
         for prefix in &self.prefixes() {
             let walk_root = root.join(PathBuf::from_slash(prefix));
             for entry in WalkDir::new(&walk_root).sort_by_file_name() {
                 let entry = entry?;
-                let file_name = entry
-                    .path()
-                    .strip_prefix(&root)
-                    .map_err(|e| Error::StripPrefix(e, root.clone(), entry.path().to_owned()))?;
+                let file_name = entry.path().strip_prefix(&root).map_err(|e| {
+                    GlobError::StripPrefix(e, root.clone(), entry.path().to_owned())
+                })?;
                 let file_name = file_name
                     .to_slash()
-                    .ok_or_else(|| Error::InvalidPath(entry.path().to_owned()))?;
+                    .ok_or_else(|| GlobError::InvalidPath(entry.path().to_owned()))?;
                 for arg in &self.args {
                     for stem in arg.glob.do_match(&file_name) {
                         stems.insert(stem.to_owned());
@@ -87,7 +86,10 @@ impl GlobSpec {
     }
 
     /// Helper function that does `GlobSpec::glob` and set differene.
-    pub fn glob_diff(&self, known_stems: &[String]) -> Result<(Vec<String>, Vec<String>), Error> {
+    pub fn glob_diff(
+        &self,
+        known_stems: &[String],
+    ) -> Result<(Vec<String>, Vec<String>), GlobError> {
         let stems = self.glob()?;
         let missing_stems = {
             let stems = stems.iter().collect::<HashSet<_>>();
