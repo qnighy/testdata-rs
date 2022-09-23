@@ -1,4 +1,4 @@
-pub use testdata_macros::testdata;
+pub use testdata_macros::files;
 pub use testdata_rt::*;
 
 pub mod __rt {

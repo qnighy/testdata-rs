@@ -17,17 +17,17 @@ use crate::attrs::{ArgAttrs, MacroArgs};
 use crate::codegen::generate;
 
 #[proc_macro_attribute]
-pub fn testdata(
+pub fn files(
     raw_args: proc_macro::TokenStream,
     raw_item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    match testdata2(raw_args.into(), raw_item.into()) {
+    match files2(raw_args.into(), raw_item.into()) {
         Ok(tokens) => tokens.into(),
         Err(err) => err.to_compile_error().into(),
     }
 }
 
-fn testdata2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream, syn::Error> {
+fn files2(raw_args: TokenStream, raw_item: TokenStream) -> Result<TokenStream, syn::Error> {
     let span = raw_args.span();
     let args = MacroArgs::parse(raw_args)?;
 
