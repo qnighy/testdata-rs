@@ -16,7 +16,7 @@ use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
 pub use crate::fixtures::{pending, Fixture};
-#[cfg(any(feature = "serde_json", doc))]
+#[cfg(any(feature = "serde_json", all(feature = "__doc_cfg", doc)))]
 pub use crate::formats::json::Json;
 pub use crate::patterns::{GlobParseError, GlobPattern};
 pub use crate::snapshots::{assert_snapshot_helper, Snapshot, SnapshotMode};

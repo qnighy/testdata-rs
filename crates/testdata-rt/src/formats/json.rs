@@ -5,6 +5,7 @@ use serde::Serialize;
 use crate::snapshots::Snapshot;
 use crate::test_input::TestInput;
 
+#[cfg_attr(all(feature = "__doc_cfg", doc), doc(cfg(feature = "serde_json")))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, TransparentWrapper)]
 #[repr(transparent)]
 pub struct Json<T>(pub T);

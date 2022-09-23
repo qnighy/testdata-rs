@@ -8,6 +8,7 @@ edition = "2021"
 [features]
 default = []
 serde_json = ["dep:serde_json", "serde"]
+__doc_cfg = []
 
 [dependencies]
 bstr = "1.0.1"
