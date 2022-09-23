@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-serde_json = ["testdata-rt/serde_json"]
+json = ["testdata-rt/json"]
 __doc_cfg = ["testdata-rt/__doc_cfg"]
 
 [dependencies]

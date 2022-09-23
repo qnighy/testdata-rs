@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 default = []
-serde_json = ["dep:serde_json", "serde"]
+json = ["dep:serde_json", "dep:serde"]
 __doc_cfg = []
 
 [dependencies]
