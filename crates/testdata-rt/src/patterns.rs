@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use thiserror::Error;
 
+/// A syntax error in a glob pattern.
 #[derive(Debug, Error)]
 pub enum GlobParseError {
     #[error("No wildcard found: {src:?}")]
@@ -13,16 +14,19 @@ pub enum GlobParseError {
     StrayRecursiveWildcard { src: String },
 }
 
+/// A parsed glob pattern, like `tests/fixtures/**/*.json`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GlobPattern {
     branches: Vec<GlobBranch>,
 }
 
 impl GlobPattern {
+    /// Creates a glob pattern from a string representation.
     pub fn new(src: &str) -> Self {
         src.parse().unwrap()
     }
 
+    /// Matches a single path against this pattern.
     pub fn do_match<'a>(&self, file_name: &'a str) -> Vec<&'a str> {
         let mut matches = Vec::new();
         for branch in &self.branches {
@@ -33,6 +37,7 @@ impl GlobPattern {
         matches
     }
 
+    /// Assigns the match result in the pattern to get the path(s).
     pub fn subst(&self, stem: &str) -> Vec<String> {
         self.branches
             .iter()
@@ -40,6 +45,7 @@ impl GlobPattern {
             .collect::<Vec<_>>()
     }
 
+    /// Returns known prefixes from this pattern.
     pub fn prefixes(&self) -> Vec<String> {
         self.branches
             .iter()

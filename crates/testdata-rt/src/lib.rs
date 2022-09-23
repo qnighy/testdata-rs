@@ -1,3 +1,5 @@
+//! Runtime definitions for the `testdata` crate.
+
 mod fixtures;
 mod formats;
 mod patterns;
@@ -14,12 +16,13 @@ use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
 pub use crate::fixtures::{pending, Fixture};
-#[cfg(feature = "serde_json")]
+#[cfg(any(feature = "serde_json", doc))]
 pub use crate::formats::json::Json;
 pub use crate::patterns::{GlobParseError, GlobPattern};
 pub use crate::snapshots::{assert_snapshot_helper, Snapshot, SnapshotMode};
 pub use crate::test_input::TestInput;
 
+/// Represents the glob error.
 #[derive(Debug, StdError)]
 pub enum Error {
     #[error("Error during walk: {0}")]
@@ -30,14 +33,18 @@ pub enum Error {
     InvalidPath(PathBuf),
 }
 
+/// Configurations for finding test files in a file-based test.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct GlobSpec {
+    /// Serching root. Defaults to `.`.
     pub root: PathBuf,
+    /// List of arguments in the order of appearence.
     pub args: Vec<ArgSpec>,
 }
 
 impl GlobSpec {
+    /// Creates the default glob configuration.
     pub fn new() -> Self {
         Self {
             root: PathBuf::from("."),
@@ -45,19 +52,23 @@ impl GlobSpec {
         }
     }
 
+    /// Builder utility to set `self.root`.
     pub fn root(mut self, root: &Path) -> Self {
         self.root = root.to_owned();
         self
     }
 
+    /// Builder utility to set `self.args`.
     pub fn arg(mut self, arg: ArgSpec) -> Self {
         self.args.push(arg);
         self
     }
 
+    /// Searches for the test files.
     pub fn glob(&self) -> Result<Vec<String>, Error> {
         self.glob_from(Path::new(""))
     }
+    /// Searches for the test files, with custom working directory.
     pub fn glob_from(&self, cwd: &Path) -> Result<Vec<String>, Error> {
         let root = cwd.join(&self.root);
         let mut stems = HashSet::new();
@@ -88,6 +99,7 @@ impl GlobSpec {
         Ok(sorted_stems)
     }
 
+    /// Helper function that does `GlobSpec::glob` and set differene.
     pub fn glob_diff(&self, known_stems: &[String]) -> Result<(Vec<String>, Vec<String>), Error> {
         let stems = self.glob()?;
         let missing_stems = {
@@ -109,6 +121,7 @@ impl GlobSpec {
         Ok((extra_stems, missing_stems))
     }
 
+    /// Assigns a specific test name to get the path(s) to the file.
     pub fn expand(&self, stem: &str) -> Option<Vec<Fixture>> {
         let mut fixtures = Vec::new();
         for arg in &self.args {
@@ -161,6 +174,7 @@ impl GlobSpec {
     }
 }
 
+/// Configuration for a specific argument in a file-based test.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct ArgSpec {
@@ -179,6 +193,7 @@ impl ArgSpec {
     }
 }
 
+/// An equivalent to the `touch` command.
 pub fn touch(path: &Path) -> io::Result<()> {
     // Touch the file containing the test
     let now = std::time::SystemTime::now()
