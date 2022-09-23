@@ -6,7 +6,7 @@ use path_slash::PathExt as _;
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
-use crate::fixtures::Fixture;
+use crate::fixtures::TestFile;
 use crate::patterns::{GlobParseError, GlobPattern};
 
 /// Represents the glob error.
@@ -111,8 +111,8 @@ impl GlobSpec {
     }
 
     /// Assigns a specific test name to get the path(s) to the file.
-    pub fn expand(&self, stem: &str) -> Option<Vec<Fixture>> {
-        let mut fixtures = Vec::new();
+    pub fn expand(&self, stem: &str) -> Option<Vec<TestFile>> {
+        let mut test_files = Vec::new();
         for arg in &self.args {
             let paths = arg
                 .glob
@@ -123,10 +123,10 @@ impl GlobSpec {
             if paths.is_empty() {
                 return None;
             }
-            fixtures.push(Fixture { paths });
+            test_files.push(TestFile { paths });
         }
-        if fixtures.iter().any(|f| f.exists()) {
-            Some(fixtures)
+        if test_files.iter().any(|f| f.exists()) {
+            Some(test_files)
         } else {
             None
         }

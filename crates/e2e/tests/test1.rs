@@ -1,10 +1,10 @@
-use testdata::{pending, Fixture};
+use testdata::{pending, TestFile};
 
 #[testdata::files(rebuild = "tests/test1.rs")]
 #[test]
 fn test_foo(
-    #[glob = "tests/fixtures/**/*-in.txt"] input: &Fixture,
-    #[glob = "tests/fixtures/**/*-pending.txt"] pending_file: &Fixture,
+    #[glob = "tests/fixtures/**/*-in.txt"] input: &TestFile,
+    #[glob = "tests/fixtures/**/*-pending.txt"] pending_file: &TestFile,
 ) {
     if !cfg!(feature = "e2e") {
         return;

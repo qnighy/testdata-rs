@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use testdata_rt::{ArgSpec, Fixture, GlobSpec};
+use testdata_rt::{ArgSpec, GlobSpec, TestFile};
 
 #[test]
 fn test_expand() {
@@ -11,10 +11,10 @@ fn test_expand() {
     assert_eq!(
         spec.expand("bar"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-in.txt")],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-out.txt")],
             },
         ])
@@ -22,10 +22,10 @@ fn test_expand() {
     assert_eq!(
         spec.expand("baz"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-in.txt")],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-out.txt")],
             },
         ])
@@ -33,10 +33,10 @@ fn test_expand() {
     assert_eq!(
         spec.expand("foo"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-in.txt")],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-out.txt")],
             },
         ])
@@ -45,12 +45,12 @@ fn test_expand() {
     assert_eq!(
         spec.expand("nested/bar"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from(
                     "tests/fixtures/project1/data/nested/bar-in.txt"
                 )],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from(
                     "tests/fixtures/project1/data/nested/bar-out.txt"
                 )],
@@ -60,12 +60,12 @@ fn test_expand() {
     assert_eq!(
         spec.expand("nested/baz"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from(
                     "tests/fixtures/project1/data/nested/baz-in.txt"
                 )],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from(
                     "tests/fixtures/project1/data/nested/baz-out.txt"
                 )],
@@ -75,12 +75,12 @@ fn test_expand() {
     assert_eq!(
         spec.expand("nested/foo"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from(
                     "tests/fixtures/project1/data/nested/foo-in.txt"
                 )],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from(
                     "tests/fixtures/project1/data/nested/foo-out.txt"
                 )],
@@ -114,10 +114,10 @@ fn test_expand_non_nested() {
     assert_eq!(
         spec.expand("bar"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-in.txt")],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/bar-out.txt")],
             },
         ])
@@ -125,10 +125,10 @@ fn test_expand_non_nested() {
     assert_eq!(
         spec.expand("baz"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-in.txt")],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/baz-out.txt")],
             },
         ])
@@ -136,10 +136,10 @@ fn test_expand_non_nested() {
     assert_eq!(
         spec.expand("foo"),
         Some(vec![
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-in.txt")],
             },
-            Fixture {
+            TestFile {
                 paths: vec![PathBuf::from("tests/fixtures/project1/data/foo-out.txt")],
             },
         ])

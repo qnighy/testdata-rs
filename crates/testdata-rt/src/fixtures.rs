@@ -5,11 +5,11 @@ use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Fixture {
+pub struct TestFile {
     pub paths: Vec<PathBuf>,
 }
 
-impl Fixture {
+impl TestFile {
     pub fn raw_read(&self) -> Vec<u8> {
         self.try_raw_read().unwrap()
     }
@@ -37,7 +37,7 @@ impl Fixture {
         if let Some(first_error) = first_error {
             Err(first_error)
         } else {
-            panic!("Fixture.paths is empty");
+            panic!("TestFile.paths is empty");
         }
     }
 
@@ -51,7 +51,7 @@ impl Fixture {
             if path.exists() {
                 return Err(io::Error::new(
                     io::ErrorKind::PermissionDenied,
-                    format!("Cannot remove readonly fixture: {}", path.display()),
+                    format!("Cannot remove readonly test file: {}", path.display()),
                 ));
             }
         }
@@ -82,11 +82,11 @@ impl Fixture {
     }
 
     pub fn path_for_writing(&self) -> &Path {
-        self.paths.first().expect("Fixture.paths is empty")
+        self.paths.first().expect("TestFile.paths is empty")
     }
 }
 
-pub fn pending<F>(fixture: &Fixture, f: F)
+pub fn pending<F>(test_file: &TestFile, f: F)
 where
     F: FnOnce(),
 {
@@ -102,7 +102,7 @@ where
         }
         .to_owned()
     });
-    let expected = if let Some(s) = fixture.raw_read_opt() {
+    let expected = if let Some(s) = test_file.raw_read_opt() {
         Err(String::from_utf8_lossy(&s).trim_end().to_owned())
     } else {
         Ok(())
@@ -116,14 +116,14 @@ where
         // do nothing
     } else if update_pending {
         match &actual {
-            Ok(_) => fixture.remove(),
+            Ok(_) => test_file.remove(),
             Err(e) => {
                 let e = if e.is_empty() || e.ends_with("\n") {
                     e.to_owned()
                 } else {
                     format!("{}\n", e)
                 };
-                fixture.raw_write(e.as_bytes());
+                test_file.raw_write(e.as_bytes());
             }
         }
     } else {

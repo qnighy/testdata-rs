@@ -12,7 +12,7 @@ mod test_input;
 use std::io;
 use std::path::Path;
 
-pub use crate::fixtures::{pending, Fixture};
+pub use crate::fixtures::{pending, TestFile};
 #[cfg(any(feature = "serde_json", all(feature = "__doc_cfg", doc)))]
 pub use crate::formats::json::Json;
 pub use crate::globbing::{ArgSpec, GlobError, GlobSpec};

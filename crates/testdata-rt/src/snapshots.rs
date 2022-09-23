@@ -1,43 +1,43 @@
 use std::borrow::Borrow;
 use std::env;
 
-use crate::fixtures::Fixture;
+use crate::fixtures::TestFile;
 use crate::test_input::TestInput;
 
 #[macro_export]
 macro_rules! assert_snapshot {
-    ($e:expr, snapshot = $fixture:expr) => {
-        match (&($e), &($fixture)) {
-            (e, fixture) => $crate::assert_snapshot_helper(e, fixture, |lhs, rhs| {
+    ($e:expr, snapshot = $test_file:expr) => {
+        match (&($e), &($test_file)) {
+            (e, test_file) => $crate::assert_snapshot_helper(e, test_file, |lhs, rhs| {
                 $crate::pretty_assertions::assert_eq!(*lhs, *rhs)
             }),
         }
     };
 }
 
-pub fn assert_snapshot_helper<T, F>(e: &T, fixture: &Fixture, assertion: F)
+pub fn assert_snapshot_helper<T, F>(e: &T, test_file: &TestFile, assertion: F)
 where
     T: Snapshot + ?Sized,
     T::Borrowed: PartialEq,
     F: FnOnce(&T::Borrowed, &T::Borrowed),
 {
     let mode = SnapshotMode::current();
-    let expected = if let Some(expected) = fixture.raw_read_opt() {
+    let expected = if let Some(expected) = test_file.raw_read_opt() {
         expected
     } else if mode >= SnapshotMode::New {
-        write_snapshot(e, fixture);
+        write_snapshot(e, test_file);
         return;
     } else {
         panic!(
             "Snapshot does not exist: {}",
-            fixture.path_for_writing().display()
+            test_file.path_for_writing().display()
         );
     };
 
     let expected = T::Owned::read_from(&expected);
     if *e.borrow() != *expected.borrow() {
         if mode == SnapshotMode::All {
-            write_snapshot(e, fixture);
+            write_snapshot(e, test_file);
             return;
         }
         assertion(e.borrow(), expected.borrow());
@@ -45,7 +45,7 @@ where
     }
 }
 
-fn write_snapshot<T>(e: &T, fixture: &Fixture)
+fn write_snapshot<T>(e: &T, fixture: &TestFile)
 where
     T: Snapshot + ?Sized,
 {
