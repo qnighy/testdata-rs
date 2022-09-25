@@ -19,6 +19,8 @@ pub use crate::globbing::{ArgSpec, GlobError, GlobSpec};
 pub use crate::patterns::{GlobParseError, GlobPattern};
 pub use crate::snapshots::{assert_snapshot_helper, Snapshot, SnapshotMode};
 pub use crate::test_input::TestInput;
+#[doc(hidden)]
+pub extern crate pretty_assertions;
 
 /// An equivalent to the `touch` command.
 pub fn touch(path: &Path) -> io::Result<()> {
