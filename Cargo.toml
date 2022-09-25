@@ -2,6 +2,16 @@
 name = "testdata"
 version = "0.1.0"
 edition = "2021"
+# rust-version = ""
+description = "File-based testing helper"
+repository = "https://github.com/qnighy/testdata-rs"
+license = "MIT or Apache-2.0"
+keywords = ["testing", "testcase", "test", "files", "snapshot"]
+categories = ["development-tools::testing", "filesystem"]
+include = [
+    "/src",
+    "/README.md",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
