@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::env;
 
-use crate::fixtures::TestFile;
+use crate::test_files::TestFile;
 use crate::test_input::TestInput;
 
 #[macro_export]

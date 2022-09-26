@@ -6,8 +6,8 @@ use path_slash::PathExt as _;
 use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
-use crate::fixtures::TestFile;
 use crate::patterns::{GlobParseError, GlobPattern};
+use crate::test_files::TestFile;
 
 /// Represents the glob error.
 #[derive(Debug, StdError)]
