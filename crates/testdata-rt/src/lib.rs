@@ -9,9 +9,6 @@ mod snapshots;
 mod test_files;
 mod test_input;
 
-use std::io;
-use std::path::Path;
-
 #[cfg(any(feature = "serde_json", all(feature = "__doc_cfg", doc)))]
 pub use crate::formats::json::Json;
 pub use crate::globbing::{ArgSpec, GlobError, GlobSpec};
@@ -21,14 +18,3 @@ pub use crate::test_files::{pending, TestFile};
 pub use crate::test_input::TestInput;
 #[doc(hidden)]
 pub extern crate pretty_assertions;
-
-/// An equivalent to the `touch` command.
-pub fn touch(path: &Path) -> io::Result<()> {
-    // Touch the file containing the test
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    utime::set_file_times(path, now as i64, now as i64)?;
-    Ok(())
-}

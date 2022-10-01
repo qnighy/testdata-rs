@@ -24,10 +24,14 @@
 //!
 //! More documents will be added in the later versions.
 
+pub mod util;
+
 pub use testdata_macros::files;
 pub use testdata_rt::*;
 
 pub mod __rt {
     pub use once_cell::sync::Lazy;
-    pub use testdata_rt::{touch, ArgSpec, GlobSpec};
+    pub use testdata_rt::{ArgSpec, GlobSpec};
+
+    pub use crate::util::touch;
 }
