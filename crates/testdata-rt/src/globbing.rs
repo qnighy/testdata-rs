@@ -40,18 +40,53 @@ impl GlobSpec {
     }
 
     /// Builder utility to set `self.root`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use std::path::Path;
+    /// # use testdata_rt::GlobSpec;
+    /// let spec = GlobSpec::new()
+    ///     .root(Path::new("./tests"));
+    /// assert_eq!(spec.root, Path::new("./tests"));
+    /// ```
     pub fn root(mut self, root: &Path) -> Self {
         self.root = root.to_owned();
         self
     }
 
     /// Builder utility to set `self.args`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use std::path::Path;
+    /// # use testdata_rt::{GlobSpec, ArgSpec};
+    /// let spec = GlobSpec::new()
+    ///     .arg(ArgSpec::new("tests/data/*-in.txt"))
+    ///     .arg(ArgSpec::new("tests/data/*-out.txt"));
+    ///
+    /// assert_eq!(spec.args.len(), 2);
+    /// assert_eq!(spec.args[0].glob.to_string(), "tests/data/*-in.txt");
+    /// assert_eq!(spec.args[1].glob.to_string(), "tests/data/*-out.txt");
+    /// ```
     pub fn arg(mut self, arg: ArgSpec) -> Self {
         self.args.push(arg);
         self
     }
 
     /// Searches for the test files.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use testdata_rt::{GlobSpec, ArgSpec};
+    /// let spec = GlobSpec::new()
+    ///     .arg(ArgSpec::new("tests/data/*-in.txt"))
+    ///     .arg(ArgSpec::new("tests/data/*-out.txt"));
+    /// let stems = spec.glob().unwrap();
+    /// # assert_eq!(stems, vec!["foo".to_owned()]);
+    /// ```
     pub fn glob(&self) -> Result<Vec<String>, GlobError> {
         self.glob_from(Path::new(""))
     }
