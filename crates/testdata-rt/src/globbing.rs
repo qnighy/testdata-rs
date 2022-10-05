@@ -120,31 +120,6 @@ impl GlobSpec {
         Ok(sorted_stems)
     }
 
-    /// Helper function that does `GlobSpec::glob` and set differene.
-    pub fn glob_diff(
-        &self,
-        known_stems: &[String],
-    ) -> Result<(Vec<String>, Vec<String>), GlobError> {
-        let stems = self.glob()?;
-        let missing_stems = {
-            let stems = stems.iter().collect::<HashSet<_>>();
-            known_stems
-                .iter()
-                .cloned()
-                .filter(|stem| !stems.contains(stem))
-                .collect::<Vec<_>>()
-        };
-        let extra_stems = {
-            let known_stems = known_stems.iter().collect::<HashSet<_>>();
-            stems
-                .iter()
-                .cloned()
-                .filter(|stem| !known_stems.contains(stem))
-                .collect::<Vec<_>>()
-        };
-        Ok((extra_stems, missing_stems))
-    }
-
     /// Assigns a specific test name to get the path(s) to the file.
     pub fn expand(&self, stem: &str) -> Option<Vec<TestFile>> {
         let mut test_files = Vec::new();

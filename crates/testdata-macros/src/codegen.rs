@@ -171,7 +171,7 @@ fn generate_fallback_fn(
         .collect::<Vec<_>>();
     let rebuilder = if let Some(rebuild_path) = &macro_args.rebuild {
         quote! {
-            if !extra_stems.is_empty() || !missing_stems.is_empty() {
+            if diff.has_diff {
                 #rt::touch(std::path::Path::new(#rebuild_path)).unwrap();
             }
         }
@@ -182,10 +182,11 @@ fn generate_fallback_fn(
         #[test]
         fn __others() {
             let known_stems = #stems_literal;
-            let (extra_stems, missing_stems) = self::__GLOB_SPEC
-                .glob_diff(&known_stems)
+            let stems = self::__GLOB_SPEC
+                .glob()
                 .unwrap();
-            for stem in &extra_stems {
+            let diff = #rt::diff(&stems, &known_stems);
+            for stem in &diff.extra {
                 if known_stems.contains(stem) {
                     continue;
                 }
@@ -340,10 +341,9 @@ mod tests {
                             "foo/bar/baz".to_owned(),
                             "foo/bar_baz".to_owned()
                         ];
-                        let (extra_stems, missing_stems) = self::__GLOB_SPEC
-                            .glob_diff(&known_stems)
-                            .unwrap();
-                        for stem in &extra_stems {
+                        let stems = self::__GLOB_SPEC.glob().unwrap();
+                        let diff = testdata::__rt::diff(&stems, &known_stems);
+                        for stem in &diff.extra {
                             if known_stems.contains(stem) {
                                 continue;
                             }
@@ -404,10 +404,9 @@ mod tests {
                     #[test]
                     fn __others() {
                         let known_stems = vec!["foo".to_owned()];
-                        let (extra_stems, missing_stems) = self::__GLOB_SPEC
-                            .glob_diff(&known_stems)
-                            .unwrap();
-                        for stem in &extra_stems {
+                        let stems = self::__GLOB_SPEC.glob().unwrap();
+                        let diff = testdata::__rt::diff(&stems, &known_stems);
+                        for stem in &diff.extra {
                             if known_stems.contains(stem) {
                                 continue;
                             }
@@ -468,10 +467,9 @@ mod tests {
                     #[test]
                     fn __others() {
                         let known_stems = vec!["foo".to_owned()];
-                        let (extra_stems, missing_stems) = self::__GLOB_SPEC
-                            .glob_diff(&known_stems)
-                            .unwrap();
-                        for stem in &extra_stems {
+                        let stems = self::__GLOB_SPEC.glob().unwrap();
+                        let diff = testdata::__rt::diff(&stems, &known_stems);
+                        for stem in &diff.extra {
                             if known_stems.contains(stem) {
                                 continue;
                             }
@@ -480,7 +478,7 @@ mod tests {
                                 .unwrap();
                             super::test_foo(&paths[0], &paths[1]);
                         }
-                        if !extra_stems.is_empty() || !missing_stems.is_empty() {
+                        if diff.has_diff {
                             testdata::__rt::touch(std::path::Path::new("test/integration.rs")).unwrap();
                         }
                     }

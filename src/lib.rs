@@ -33,5 +33,5 @@ pub mod __rt {
     pub use once_cell::sync::Lazy;
     pub use testdata_rt::{ArgSpec, GlobSpec};
 
-    pub use crate::util::touch;
+    pub use crate::util::{diff, touch};
 }
