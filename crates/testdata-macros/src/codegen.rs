@@ -125,6 +125,7 @@ fn generate_fn(
     args: &Punctuated<FnArg, Token![,]>,
     base_function_name: &Ident,
 ) -> TokenStream {
+    let rt = get_rt();
     let self_ref = up(depth);
     let super_ref = up(depth + 1);
     let name = Ident::new(name, Span::call_site());
@@ -140,7 +141,7 @@ fn generate_fn(
     quote! {
         #[test]
         fn #name() {
-            if let Some(paths) = #self_ref::__GLOB_SPEC.expand(#stem) {
+            if let Some(paths) = #rt::GlobSpecExt::expand(&*#self_ref::__GLOB_SPEC, #stem) {
                 #super_ref::#base_function_name(#(#arg_forwards),*);
             }
         }
@@ -190,8 +191,7 @@ fn generate_fallback_fn(
                 if known_stems.contains(stem) {
                     continue;
                 }
-                let paths = self::__GLOB_SPEC
-                    .expand(stem)
+                let paths = #rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, stem)
                     .unwrap();
                 super::#base_function_name(#(#arg_forwards),*);
             }
@@ -293,39 +293,48 @@ mod tests {
                         });
                     #[test]
                     fn bar() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand("bar") {
+                        if let Some(paths) = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, "bar") {
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
                     #[test]
                     fn foo() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
+                        if let Some(paths) = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, "foo") {
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
                     mod foo {
                         #[test]
                         fn bar_baz() {
-                            if let Some(paths) = super::__GLOB_SPEC.expand("foo/bar-baz") {
+                            if let Some(paths) =
+                                testdata::__rt::GlobSpecExt::expand(&*super::__GLOB_SPEC, "foo/bar-baz")
+                            {
                                 super::super::test_foo(&paths[0], &paths[1]);
                             }
                         }
                         #[test]
                         fn bar_baz_1() {
-                            if let Some(paths) = super::__GLOB_SPEC.expand("foo/bar_baz") {
+                            if let Some(paths) =
+                                testdata::__rt::GlobSpecExt::expand(&*super::__GLOB_SPEC, "foo/bar_baz")
+                            {
                                 super::super::test_foo(&paths[0], &paths[1]);
                             }
                         }
                         mod bar {
                             #[test]
                             fn _01_todo() {
-                                if let Some(paths) = super::super::__GLOB_SPEC.expand("foo/bar/01_todo") {
+                                if let Some(paths) = testdata::__rt::GlobSpecExt::expand(
+                                    &*super::super::__GLOB_SPEC,
+                                    "foo/bar/01_todo"
+                                ) {
                                     super::super::super::test_foo(&paths[0], &paths[1]);
                                 }
                             }
                             #[test]
                             fn baz() {
-                                if let Some(paths) = super::super::__GLOB_SPEC.expand("foo/bar/baz") {
+                                if let Some(paths) =
+                                    testdata::__rt::GlobSpecExt::expand(&*super::super::__GLOB_SPEC, "foo/bar/baz")
+                                {
                                     super::super::super::test_foo(&paths[0], &paths[1]);
                                 }
                             }
@@ -347,9 +356,7 @@ mod tests {
                             if known_stems.contains(stem) {
                                 continue;
                             }
-                            let paths = self::__GLOB_SPEC
-                                .expand(stem)
-                                .unwrap();
+                            let paths = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, stem).unwrap();
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
@@ -397,7 +404,7 @@ mod tests {
                         });
                     #[test]
                     fn foo() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
+                        if let Some(paths) = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, "foo") {
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
@@ -410,9 +417,7 @@ mod tests {
                             if known_stems.contains(stem) {
                                 continue;
                             }
-                            let paths = self::__GLOB_SPEC
-                                .expand(stem)
-                                .unwrap();
+                            let paths = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, stem).unwrap();
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
@@ -460,7 +465,7 @@ mod tests {
                         });
                     #[test]
                     fn foo() {
-                        if let Some(paths) = self::__GLOB_SPEC.expand("foo") {
+                        if let Some(paths) = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, "foo") {
                             super::test_foo(&paths[0], &paths[1]);
                         }
                     }
@@ -473,9 +478,7 @@ mod tests {
                             if known_stems.contains(stem) {
                                 continue;
                             }
-                            let paths = self::__GLOB_SPEC
-                                .expand(stem)
-                                .unwrap();
+                            let paths = testdata::__rt::GlobSpecExt::expand(&*self::__GLOB_SPEC, stem).unwrap();
                             super::test_foo(&paths[0], &paths[1]);
                         }
                         if diff.has_diff {

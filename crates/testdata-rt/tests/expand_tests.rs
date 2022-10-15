@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use testdata_rt::GlobSpecExt as _;
 use testdata_rt::{ArgSpec, GlobSpec, TestFile};
 
 #[test]

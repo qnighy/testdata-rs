@@ -7,7 +7,6 @@ use thiserror::Error as StdError;
 use walkdir::WalkDir;
 
 use crate::patterns::{GlobParseError, GlobPattern};
-use crate::test_files::TestFile;
 
 /// Represents the glob error.
 #[derive(Debug, StdError)]
@@ -121,7 +120,7 @@ impl GlobSpec {
     }
 
     /// Assigns a specific test name to get the path(s) to the file.
-    pub fn expand(&self, stem: &str) -> Option<Vec<TestFile>> {
+    pub fn expand_core(&self, stem: &str) -> Option<Vec<Vec<PathBuf>>> {
         let mut test_files = Vec::new();
         for arg in &self.args {
             let paths = arg
@@ -133,13 +132,9 @@ impl GlobSpec {
             if paths.is_empty() {
                 return None;
             }
-            test_files.push(TestFile { paths });
+            test_files.push(paths);
         }
-        if test_files.iter().any(|f| f.exists()) {
-            Some(test_files)
-        } else {
-            None
-        }
+        Some(test_files)
     }
 
     fn prefixes(&self) -> Vec<String> {
