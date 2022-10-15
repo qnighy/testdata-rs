@@ -1,4 +1,5 @@
-use crate::globbing::GlobSpec;
+use testdata_rt::GlobSpec;
+
 use crate::test_files::TestFile;
 
 pub trait GlobSpecExt {

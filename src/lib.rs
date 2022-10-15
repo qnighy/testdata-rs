@@ -24,14 +24,26 @@
 //!
 //! More documents will be added in the later versions.
 
+mod formats;
+mod glob_ext;
+mod snapshots;
+mod test_files;
+mod test_input;
 pub mod util;
 
+#[cfg(any(feature = "serde_json", all(feature = "__doc_cfg", doc)))]
+pub use crate::formats::json::Json;
+pub use crate::glob_ext::GlobSpecExt;
+pub use crate::snapshots::{assert_snapshot_helper, Snapshot, SnapshotMode};
+pub use crate::test_files::{pending, TestFile};
+pub use crate::test_input::TestInput;
 pub use testdata_macros::files;
 pub use testdata_rt::*;
 
 pub mod __rt {
     pub use once_cell::sync::Lazy;
-    pub use testdata_rt::{ArgSpec, GlobSpec, GlobSpecExt};
+    pub use testdata_rt::{ArgSpec, GlobSpec};
 
     pub use crate::util::{diff, touch};
+    pub use crate::GlobSpecExt;
 }

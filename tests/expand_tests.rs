@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
-use testdata_rt::GlobSpecExt as _;
-use testdata_rt::{ArgSpec, GlobSpec, TestFile};
+use testdata::GlobSpecExt as _;
+use testdata::{ArgSpec, GlobSpec, TestFile};
 
 #[test]
 fn test_expand() {
